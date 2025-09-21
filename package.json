@@ -1,0 +1,51 @@
+{
+  "name": "data-satellites",
+  "version": "1.0.0",
+  "description": "Comprehensive collection of Datastar plugins - positioning, animations, utilities, and UI components",
+  "main": "dist/anchor.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "dev": "tsc --watch & npx serve . -p 8080",
+    "serve": "npx serve . -p 8080",
+    "clean": "rm -rf dist && tsc",
+    "test": "node test-server.js",
+    "test:local": "npm run build && node test-server.js",
+    "test:cdn": "start demos/auto-load-test.html",
+    "test:demo": "start demos/anchor-demo.html"
+  },
+  "keywords": [
+    "datastar",
+    "plugins",
+    "anchor",
+    "positioning",
+    "tooltip",
+    "dropdown",
+    "animation",
+    "ui-components",
+    "reactive",
+    "typescript"
+  ],
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "author": "Data Satellites Contributors",
+  "license": "MIT",
+  "files": [
+    "dist/",
+    "src/",
+    "demos/",
+    "DatastarPluginGuide.md",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ndendic/data-satellites.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ndendic/data-satellites/issues"
+  },
+  "homepage": "https://github.com/ndendic/data-satellites#readme"
+}
