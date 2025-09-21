@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Working Plugin Loading Test</title>
+  
+  <!-- Simple Two-Liner Approach - FIXED -->
+  <script type="module">
+    // Import Datastar as module
+    import { load, apply } from 'https://cdn.jsdelivr.net/gh/starfederation/datastar@1.0.0-RC.5/bundles/datastar.js';
+    
+    // Make it available globally
+    window.datastar = { load, apply };
+    
+    // Initialize Datastar
+    apply();
+    
+    // Load plugin system and auto-load
+    await import('/dist/plugin-loader-browser.js');
+    await datastar.autoLoadPlugins();
+  </script>
+  
+  <style>
+    body { 
+      font-family: system-ui; 
+      padding: 20px; 
+      background: #f5f5f5; 
+    }
+    .container { 
+      max-width: 800px; 
+      margin: 0 auto; 
+      background: white; 
+      padding: 30px; 
+      border-radius: 8px; 
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .status { 
+      padding: 10px; 
+      margin: 10px 0; 
+      border-radius: 4px; 
+      border-left: 4px solid #ccc;
+    }
+    .success { 
+      background: #d4edda; 
+      color: #155724; 
+      border-left-color: #28a745;
+    }
+    .error { 
+      background: #f8d7da; 
+      color: #721c24; 
+      border-left-color: #dc3545;
+    }
+    .info { 
+      background: #d1ecf1; 
+      color: #0c5460; 
+      border-left-color: #17a2b8;
+    }
+    .warning { 
+      background: #fff3cd; 
+      color: #856404; 
+      border-left-color: #ffc107;
+    }
+    button { 
+      padding: 10px 20px; 
+      margin: 5px; 
+      cursor: pointer; 
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    button:disabled {
+      background: #6c757d;
+      cursor: not-allowed;
+    }
+    .tooltip { 
+      background: #333; 
+      color: white; 
+      padding: 8px 12px; 
+      border-radius: 4px; 
+      z-index: 1000; 
+      font-size: 14px;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .debug {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      margin: 10px 0;
+    }
+    .section {
+      margin: 30px 0;
+      padding: 20px;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+    }
+    h2 {
+      color: #343a40;
+      border-bottom: 2px solid #007bff;
+      padding-bottom: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Working Plugin Loading Test</h1>
+    <p>This is a simplified test to verify plugin loading functionality works correctly.</p>
+
+    <div id="status-log"></div>
+
+    <div class="section">
+      <h2>🔧 System Status</h2>
+      <div id="system-status">
+        <div id="datastar-status">❓ Checking Datastar...</div>
+        <div id="loader-status">❓ Checking Plugin Loader...</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🚀 Plugin Loading Tests</h2>
+      <button onclick="testLoadPlugin()">Load Anchor Plugin</button>
+      <button onclick="testAutoLoad()">Auto-Load Plugins</button>
+      <button onclick="testGetLoaded()">Show Loaded Plugins</button>
+      <div class="debug" id="plugin-debug">Plugin test results will appear here...</div>
+    </div>
+
+    <div class="section">
+      <h2>⚡ Anchor Plugin Demo</h2>
+      <p>Test the loaded anchor plugin functionality:</p>
+      <button id="demo-button" onclick="toggleTooltip()">Toggle Tooltip</button>
+      
+      <!-- This element should be positioned by the anchor plugin -->
+      <div id="demo-tooltip" 
+           data-anchor-top="'#demo-button'" 
+           data-show="$tooltipVisible"
+           class="tooltip">
+        🎯 Positioned by Anchor Plugin!
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>📊 Debug Information</h2>
+      <div class="debug" id="debug-info">Debug information will appear here...</div>
+    </div>
+  </div>
+
+  <script>
+    const statusLog = document.getElementById('status-log');
+    const pluginDebug = document.getElementById('plugin-debug');
+    const debugInfo = document.getElementById('debug-info');
+
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const logMessage = `[${timestamp}] ${message}`;
+      console.log(logMessage);
+      
+      const div = document.createElement('div');
+      div.className = `status ${type}`;
+      div.textContent = logMessage;
+      statusLog.appendChild(div);
+      statusLog.scrollTop = statusLog.scrollHeight;
+    }
+
+    function updateDebug(message) {
+      debugInfo.textContent += message + '\n';
+      debugInfo.scrollTop = debugInfo.scrollHeight;
+    }
+
+    function updatePluginDebug(message) {
+      pluginDebug.textContent += message + '\n';
+      pluginDebug.scrollTop = pluginDebug.scrollHeight;
+    }
+
+    async function testLoadPlugin() {
+      try {
+        updatePluginDebug('Testing plugin loading...');
+        
+        if (!window.datastar || !window.datastar.loadPlugin) {
+          throw new Error('datastar.loadPlugin not available');
+        }
+        
+        const plugin = await window.datastar.loadPlugin('anchor');
+        updatePluginDebug('✅ Plugin loaded successfully!');
+        updatePluginDebug('Plugin details: ' + JSON.stringify({
+          name: plugin.name,
+          type: plugin.type
+        }, null, 2));
+        
+        log('Anchor plugin loaded successfully!', 'success');
+        
+      } catch (error) {
+        updatePluginDebug('❌ Plugin loading failed: ' + error.message);
+        log('Plugin loading failed: ' + error.message, 'error');
+      }
+    }
+
+    async function testAutoLoad() {
+      try {
+        updatePluginDebug('Testing auto-load...');
+        
+        if (!window.datastar || !window.datastar.autoLoadPlugins) {
+          throw new Error('datastar.autoLoadPlugins not available');
+        }
+        
+        await window.datastar.autoLoadPlugins();
+        updatePluginDebug('✅ Auto-load completed!');
+        log('Auto-load completed successfully!', 'success');
+        
+      } catch (error) {
+        updatePluginDebug('❌ Auto-load failed: ' + error.message);
+        log('Auto-load failed: ' + error.message, 'error');
+      }
+    }
+
+    function testGetLoaded() {
+      try {
+        if (window.DatastarPluginLoader) {
+          const loaded = window.DatastarPluginLoader.getLoadedPlugins();
+          updatePluginDebug('Loaded plugins: ' + JSON.stringify(loaded, null, 2));
+          log(`Found ${loaded.length} loaded plugins`, 'info');
+        } else {
+          updatePluginDebug('❌ Plugin loader not available');
+        }
+      } catch (error) {
+        updatePluginDebug('❌ Error getting loaded plugins: ' + error.message);
+      }
+    }
+
+    function toggleTooltip() {
+      try {
+        // Initialize signal if not exists
+        if (!window.datastar.signals.$tooltipVisible) {
+          window.datastar.signals.$tooltipVisible = { value: false };
+        }
+        
+        // Toggle the signal
+        window.datastar.signals.$tooltipVisible.value = !window.datastar.signals.$tooltipVisible.value;
+        
+        log(`Tooltip ${window.datastar.signals.$tooltipVisible.value ? 'shown' : 'hidden'}`, 'info');
+        updateDebug(`Tooltip state: ${window.datastar.signals.$tooltipVisible.value}`);
+        
+        // Manually trigger repositioning for demo
+        if (window.datastar.signals.$tooltipVisible.value) {
+          window.datastar.apply();
+        }
+        
+      } catch (error) {
+        log('Tooltip toggle failed: ' + error.message, 'error');
+      }
+    }
+
+    // Initialize when page loads
+    document.addEventListener('DOMContentLoaded', () => {
+      log('DOM Content Loaded', 'info');
+      
+      // Check Datastar (should be loaded by now from CDN)
+      setTimeout(() => {
+        if (window.datastar) {
+          document.getElementById('datastar-status').textContent = '✅ Datastar Ready (CDN)';
+          document.getElementById('datastar-status').className = 'status success';
+          log('Datastar detected from CDN', 'success');
+          updateDebug('Datastar object: ' + typeof window.datastar);
+          updateDebug('Datastar methods: ' + Object.keys(window.datastar).join(', '));
+          
+          // Check if plugin loading methods are available
+          if (window.datastar.loadPlugin) {
+            log('Plugin loading methods available', 'success');
+            updateDebug('Plugin methods: loadPlugin, autoLoadPlugins available');
+          } else {
+            log('Plugin methods not yet available - plugin loader may still be loading', 'warning');
+          }
+          
+        } else {
+          document.getElementById('datastar-status').textContent = '❌ Datastar Missing';
+          document.getElementById('datastar-status').className = 'status error';
+          log('Datastar not found', 'error');
+        }
+
+        // Check Plugin Loader
+        if (window.DatastarPluginLoader) {
+          document.getElementById('loader-status').textContent = '✅ Plugin Loader Ready';
+          document.getElementById('loader-status').className = 'status success';
+          log('Plugin Loader detected', 'success');
+          updateDebug('Plugin Loader available');
+          
+        } else {
+          document.getElementById('loader-status').textContent = '❌ Plugin Loader Missing';
+          document.getElementById('loader-status').className = 'status error';
+          log('Plugin Loader not found', 'error');
+        }
+        
+        // Check if auto-loading worked
+        setTimeout(() => {
+          if (window.datastar && window.datastar.getLoadedPlugins) {
+            const loaded = window.datastar.getLoadedPlugins();
+            if (loaded.length > 0) {
+              log(`Auto-loading successful! ${loaded.length} plugins loaded`, 'success');
+              updateDebug('Auto-loaded: ' + loaded.map(p => p.name).join(', '));
+            } else {
+              log('Auto-loading completed but no plugins found', 'info');
+            }
+          }
+        }, 2000);
+        
+      }, 1000);
+    });
+  </script>
+</body>
+</html>
