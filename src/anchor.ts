@@ -90,13 +90,14 @@ const parseAnchorConfig = (el: HTMLElement, value: string) => {
   }
 };
 
-// Convert placement to CSS anchor positioning with viewport flipping
+// Convert placement to CSS anchor positioning with position-try-options
 const getAnchorCSS = (anchorName: string, placement: string, offsetValue: number, offsetUnit: string): Record<string, string> => {
   const offset = `${offsetValue}${offsetUnit}`;
   
   const styles: Record<string, string> = {
     position: 'absolute',
-    'position-anchor': anchorName
+    'position-anchor': anchorName,
+    'position-try-options': getPositionTryOptions(placement)
   };
   
   switch (placement) {
@@ -170,18 +171,36 @@ const getAnchorCSS = (anchorName: string, placement: string, offsetValue: number
   return styles;
 };
 
-// Note: CSS position-try-options removed to prevent browser compatibility issues
+// Generate position-try-options for automatic flipping
+const getPositionTryOptions = (placement: string): string => {
+  // Define fallback placements based on the primary placement
+  const fallbacks: Record<string, string[]> = {
+    'top': ['bottom', 'left', 'right'],
+    'top-start': ['bottom-start', 'top-end', 'bottom-end'],
+    'top-end': ['bottom-end', 'top-start', 'bottom-start'],
+    'bottom': ['top', 'left', 'right'],
+    'bottom-start': ['top-start', 'bottom-end', 'top-end'],
+    'bottom-end': ['top-end', 'bottom-start', 'top-start'],
+    'left': ['right', 'top', 'bottom'],
+    'left-start': ['right-start', 'left-end', 'right-end'],
+    'left-end': ['right-end', 'left-start', 'right-start'],
+    'right': ['left', 'top', 'bottom'],
+    'right-start': ['left-start', 'right-end', 'left-end'],
+    'right-end': ['left-end', 'right-start', 'left-start']
+  };
+  
+  const fallbackPlacements = fallbacks[placement] || ['bottom', 'top', 'left', 'right'];
+  
+  // Convert to CSS position-try-options format
+  return fallbackPlacements.map(p => `flip-${p}`).join(', ');
+};
 
-// Fallback positioning for browsers without CSS anchor support with viewport flipping
-const applyFallbackPositioning = (el: HTMLElement, target: HTMLElement, placement: string, offsetValue: number, offsetUnit: string) => {
-  console.log('Using fallback positioning with viewport flipping for', placement);
+// Simple fallback positioning for browsers without CSS anchor support
+const applyFallbackPositioning = (el: HTMLElement, target: HTMLElement, placement: string, offsetValue: number, offsetUnit: string): OnRemovalFn => {
+  console.log('Using simple fallback positioning for', placement);
   
   const updatePosition = () => {
     const targetRect = target.getBoundingClientRect();
-    const elRect = el.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    const padding = 10; // Minimum distance from viewport edge
     
     // Convert offset to pixels
     let offsetPx = offsetValue;
@@ -200,118 +219,84 @@ const applyFallbackPositioning = (el: HTMLElement, target: HTMLElement, placemen
         break;
     }
     
-    // Function to calculate position for a given placement
-    const calculatePosition = (testPlacement: string) => {
-      let x = 0, y = 0;
-      
-      switch (testPlacement) {
-        case 'top':
-          x = targetRect.left + (targetRect.width - elRect.width) / 2;
-          y = targetRect.top - elRect.height - offsetPx;
-          break;
-        case 'top-start':
-          x = targetRect.left;
-          y = targetRect.top - elRect.height - offsetPx;
-          break;
-        case 'top-end':
-          x = targetRect.right - elRect.width;
-          y = targetRect.top - elRect.height - offsetPx;
-          break;
-        case 'bottom':
-          x = targetRect.left + (targetRect.width - elRect.width) / 2;
-          y = targetRect.bottom + offsetPx;
-          break;
-        case 'bottom-start':
-          x = targetRect.left;
-          y = targetRect.bottom + offsetPx;
-          break;
-        case 'bottom-end':
-          x = targetRect.right - elRect.width;
-          y = targetRect.bottom + offsetPx;
-          break;
-        case 'left':
-          x = targetRect.left - elRect.width - offsetPx;
-          y = targetRect.top + (targetRect.height - elRect.height) / 2;
-          break;
-        case 'left-start':
-          x = targetRect.left - elRect.width - offsetPx;
-          y = targetRect.top;
-          break;
-        case 'left-end':
-          x = targetRect.left - elRect.width - offsetPx;
-          y = targetRect.bottom - elRect.height;
-          break;
-        case 'right':
-          x = targetRect.right + offsetPx;
-          y = targetRect.top + (targetRect.height - elRect.height) / 2;
-          break;
-        case 'right-start':
-          x = targetRect.right + offsetPx;
-          y = targetRect.top;
-          break;
-        case 'right-end':
-          x = targetRect.right + offsetPx;
-          y = targetRect.bottom - elRect.height;
-          break;
-        default:
-          // Default to bottom
-          x = targetRect.left + (targetRect.width - elRect.width) / 2;
-          y = targetRect.bottom + offsetPx;
-      }
-      
-      return { x, y, placement: testPlacement };
-    };
+    let x = 0, y = 0;
     
-    // Check if position is within viewport
-    const isWithinViewport = (pos: { x: number; y: number }) => {
-      return pos.x >= padding && 
-             pos.x + elRect.width <= viewportWidth - padding &&
-             pos.y >= padding && 
-             pos.y + elRect.height <= viewportHeight - padding;
-    };
-    
-    // Try original placement first
-    let finalPosition = calculatePosition(placement);
-    
-    // If original placement doesn't fit, try fallbacks
-    if (!isWithinViewport(finalPosition)) {
-      const fallbacks: Record<string, string[]> = {
-        'top': ['bottom', 'left', 'right'],
-        'top-start': ['bottom-start', 'top-end', 'bottom-end'],
-        'top-end': ['bottom-end', 'top-start', 'bottom-start'],
-        'bottom': ['top', 'left', 'right'],
-        'bottom-start': ['top-start', 'bottom-end', 'top-end'],
-        'bottom-end': ['top-end', 'bottom-start', 'top-start'],
-        'left': ['right', 'top', 'bottom'],
-        'left-start': ['right-start', 'left-end', 'right-end'],
-        'left-end': ['right-end', 'left-start', 'right-start'],
-        'right': ['left', 'top', 'bottom'],
-        'right-start': ['left-start', 'right-end', 'left-end'],
-        'right-end': ['left-end', 'right-start', 'left-start']
-      };
-      
-      const fallbackPlacements = fallbacks[placement] || ['bottom', 'top', 'left', 'right'];
-      
-      for (const fallbackPlacement of fallbackPlacements) {
-        const testPosition = calculatePosition(fallbackPlacement);
-        if (isWithinViewport(testPosition)) {
-          finalPosition = testPosition;
-          console.log(`Flipped from ${placement} to ${fallbackPlacement} to stay in viewport`);
-          break;
-        }
-      }
+    // Calculate position based on placement (no flipping)
+    switch (placement) {
+      case 'top':
+        x = targetRect.left + targetRect.width / 2;
+        y = targetRect.top - offsetPx;
+        el.style.translate = '-50% -100%';
+        break;
+      case 'top-start':
+        x = targetRect.left;
+        y = targetRect.top - offsetPx;
+        el.style.translate = '0 -100%';
+        break;
+      case 'top-end':
+        x = targetRect.right;
+        y = targetRect.top - offsetPx;
+        el.style.translate = '-100% -100%';
+        break;
+      case 'bottom':
+        x = targetRect.left + targetRect.width / 2;
+        y = targetRect.bottom + offsetPx;
+        el.style.translate = '-50% 0';
+        break;
+      case 'bottom-start':
+        x = targetRect.left;
+        y = targetRect.bottom + offsetPx;
+        el.style.translate = '0 0';
+        break;
+      case 'bottom-end':
+        x = targetRect.right;
+        y = targetRect.bottom + offsetPx;
+        el.style.translate = '-100% 0';
+        break;
+      case 'left':
+        x = targetRect.left - offsetPx;
+        y = targetRect.top + targetRect.height / 2;
+        el.style.translate = '-100% -50%';
+        break;
+      case 'left-start':
+        x = targetRect.left - offsetPx;
+        y = targetRect.top;
+        el.style.translate = '-100% 0';
+        break;
+      case 'left-end':
+        x = targetRect.left - offsetPx;
+        y = targetRect.bottom;
+        el.style.translate = '-100% -100%';
+        break;
+      case 'right':
+        x = targetRect.right + offsetPx;
+        y = targetRect.top + targetRect.height / 2;
+        el.style.translate = '0 -50%';
+        break;
+      case 'right-start':
+        x = targetRect.right + offsetPx;
+        y = targetRect.top;
+        el.style.translate = '0 0';
+        break;
+      case 'right-end':
+        x = targetRect.right + offsetPx;
+        y = targetRect.bottom;
+        el.style.translate = '0 -100%';
+        break;
+      default:
+        // Default to bottom
+        x = targetRect.left + targetRect.width / 2;
+        y = targetRect.bottom + offsetPx;
+        el.style.translate = '-50% 0';
     }
     
     // Account for scroll
-    finalPosition.x += window.scrollX;
-    finalPosition.y += window.scrollY;
+    x += window.scrollX;
+    y += window.scrollY;
     
     el.style.position = 'absolute';
-    el.style.left = `${finalPosition.x}px`;
-    el.style.top = `${finalPosition.y}px`;
-    
-    // Store the actual placement used for debugging
-    el.setAttribute('data-actual-placement', finalPosition.placement);
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
   };
   
   // Initial positioning
@@ -367,7 +352,7 @@ export default {
     });
     
     if (supportsCSSAnchor()) {
-      console.log('Datastar Anchor: Using CSS anchor positioning with smart flipping');
+      console.log('Datastar Anchor: Using CSS anchor positioning with position-try-options');
       
       // Generate unique anchor name
       const anchorName = generateAnchorName(targetId);
@@ -379,60 +364,14 @@ export default {
       const anchorStyles = getAnchorCSS(anchorName, placement, offsetValue, offsetUnit);
       Object.assign(el.style, anchorStyles);
       
-      console.log('Datastar Anchor: Applied CSS anchor styles', anchorStyles);
+      console.log('Datastar Anchor: Applied CSS anchor styles with position-try-options', anchorStyles);
       
-      // Add intelligent flipping check - but only switch to JS fallback if really needed
-      let hasFlipped = false;
-      
-      const checkForFlipping = () => {
-        if (hasFlipped) return; // Prevent multiple flips
-        
-        const elRect = el.getBoundingClientRect();
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-        const padding = 10;
-        
-        const isSignificantlyOutOfBounds = 
-          elRect.right < padding || // Completely off left
-          elRect.left > viewportWidth - padding || // Completely off right
-          elRect.bottom < padding || // Completely off top
-          elRect.top > viewportHeight - padding; // Completely off bottom
-          
-        if (isSignificantlyOutOfBounds) {
-          console.log('Datastar Anchor: Element significantly out of bounds, switching to JS fallback with flipping');
-          hasFlipped = true;
-          
-          // Remove CSS anchor positioning
-          el.style.removeProperty('position-anchor');
-          el.style.removeProperty('top');
-          el.style.removeProperty('bottom');
-          el.style.removeProperty('left');
-          el.style.removeProperty('right');
-          el.style.removeProperty('translate');
-          
-          // Apply JavaScript fallback with flipping
-          return applyFallbackPositioning(el, targetElement, placement, offsetValue, offsetUnit);
-        }
-      };
-      
-      // Check after CSS positioning has been applied
-      setTimeout(checkForFlipping, 50);
-      
-      // Monitor for viewport changes
-      const handleResize = () => {
-        if (!hasFlipped) {
-          setTimeout(checkForFlipping, 50);
-        }
-      };
-      window.addEventListener('resize', handleResize);
-      
-      return () => {
-        window.removeEventListener('resize', handleResize);
-      };
+      // No cleanup needed for pure CSS positioning
+      return;
     } else {
-      console.log('Datastar Anchor: CSS anchor positioning not supported, using fallback');
+      console.log('Datastar Anchor: CSS anchor positioning not supported, using basic fallback');
       
-      // Use JavaScript fallback
+      // Use simple JavaScript fallback without complex flipping
       return applyFallbackPositioning(el, targetElement, placement, offsetValue, offsetUnit);
     }
   },

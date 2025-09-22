@@ -38,7 +38,8 @@ const getAnchorCSS = (anchorName, placement, offsetValue, offsetUnit) => {
   const offset = `${offsetValue}${offsetUnit}`;
   const styles = {
     position: "absolute",
-    "position-anchor": anchorName
+    "position-anchor": anchorName,
+    "position-try-options": getPositionTryOptions(placement)
   };
   switch (placement) {
     case "top":
@@ -108,14 +109,28 @@ const getAnchorCSS = (anchorName, placement, offsetValue, offsetUnit) => {
   }
   return styles;
 };
+const getPositionTryOptions = (placement) => {
+  const fallbacks = {
+    "top": ["bottom", "left", "right"],
+    "top-start": ["bottom-start", "top-end", "bottom-end"],
+    "top-end": ["bottom-end", "top-start", "bottom-start"],
+    "bottom": ["top", "left", "right"],
+    "bottom-start": ["top-start", "bottom-end", "top-end"],
+    "bottom-end": ["top-end", "bottom-start", "top-start"],
+    "left": ["right", "top", "bottom"],
+    "left-start": ["right-start", "left-end", "right-end"],
+    "left-end": ["right-end", "left-start", "right-start"],
+    "right": ["left", "top", "bottom"],
+    "right-start": ["left-start", "right-end", "left-end"],
+    "right-end": ["left-end", "right-start", "left-start"]
+  };
+  const fallbackPlacements = fallbacks[placement] || ["bottom", "top", "left", "right"];
+  return fallbackPlacements.map((p) => `flip-${p}`).join(", ");
+};
 const applyFallbackPositioning = (el, target, placement, offsetValue, offsetUnit) => {
-  console.log("Using fallback positioning with viewport flipping for", placement);
+  console.log("Using simple fallback positioning for", placement);
   const updatePosition = () => {
     const targetRect = target.getBoundingClientRect();
-    const elRect = el.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    const padding = 10;
     let offsetPx = offsetValue;
     switch (offsetUnit) {
       case "rem":
@@ -131,98 +146,78 @@ const applyFallbackPositioning = (el, target, placement, offsetValue, offsetUnit
         offsetPx = offsetValue / 100 * window.innerHeight;
         break;
     }
-    const calculatePosition = (testPlacement) => {
-      let x = 0, y = 0;
-      switch (testPlacement) {
-        case "top":
-          x = targetRect.left + (targetRect.width - elRect.width) / 2;
-          y = targetRect.top - elRect.height - offsetPx;
-          break;
-        case "top-start":
-          x = targetRect.left;
-          y = targetRect.top - elRect.height - offsetPx;
-          break;
-        case "top-end":
-          x = targetRect.right - elRect.width;
-          y = targetRect.top - elRect.height - offsetPx;
-          break;
-        case "bottom":
-          x = targetRect.left + (targetRect.width - elRect.width) / 2;
-          y = targetRect.bottom + offsetPx;
-          break;
-        case "bottom-start":
-          x = targetRect.left;
-          y = targetRect.bottom + offsetPx;
-          break;
-        case "bottom-end":
-          x = targetRect.right - elRect.width;
-          y = targetRect.bottom + offsetPx;
-          break;
-        case "left":
-          x = targetRect.left - elRect.width - offsetPx;
-          y = targetRect.top + (targetRect.height - elRect.height) / 2;
-          break;
-        case "left-start":
-          x = targetRect.left - elRect.width - offsetPx;
-          y = targetRect.top;
-          break;
-        case "left-end":
-          x = targetRect.left - elRect.width - offsetPx;
-          y = targetRect.bottom - elRect.height;
-          break;
-        case "right":
-          x = targetRect.right + offsetPx;
-          y = targetRect.top + (targetRect.height - elRect.height) / 2;
-          break;
-        case "right-start":
-          x = targetRect.right + offsetPx;
-          y = targetRect.top;
-          break;
-        case "right-end":
-          x = targetRect.right + offsetPx;
-          y = targetRect.bottom - elRect.height;
-          break;
-        default:
-          x = targetRect.left + (targetRect.width - elRect.width) / 2;
-          y = targetRect.bottom + offsetPx;
-      }
-      return { x, y, placement: testPlacement };
-    };
-    const isWithinViewport = (pos) => {
-      return pos.x >= padding && pos.x + elRect.width <= viewportWidth - padding && pos.y >= padding && pos.y + elRect.height <= viewportHeight - padding;
-    };
-    let finalPosition = calculatePosition(placement);
-    if (!isWithinViewport(finalPosition)) {
-      const fallbacks = {
-        "top": ["bottom", "left", "right"],
-        "top-start": ["bottom-start", "top-end", "bottom-end"],
-        "top-end": ["bottom-end", "top-start", "bottom-start"],
-        "bottom": ["top", "left", "right"],
-        "bottom-start": ["top-start", "bottom-end", "top-end"],
-        "bottom-end": ["top-end", "bottom-start", "top-start"],
-        "left": ["right", "top", "bottom"],
-        "left-start": ["right-start", "left-end", "right-end"],
-        "left-end": ["right-end", "left-start", "right-start"],
-        "right": ["left", "top", "bottom"],
-        "right-start": ["left-start", "right-end", "left-end"],
-        "right-end": ["left-end", "right-start", "left-start"]
-      };
-      const fallbackPlacements = fallbacks[placement] || ["bottom", "top", "left", "right"];
-      for (const fallbackPlacement of fallbackPlacements) {
-        const testPosition = calculatePosition(fallbackPlacement);
-        if (isWithinViewport(testPosition)) {
-          finalPosition = testPosition;
-          console.log(`Flipped from ${placement} to ${fallbackPlacement} to stay in viewport`);
-          break;
-        }
-      }
+    let x = 0, y = 0;
+    switch (placement) {
+      case "top":
+        x = targetRect.left + targetRect.width / 2;
+        y = targetRect.top - offsetPx;
+        el.style.translate = "-50% -100%";
+        break;
+      case "top-start":
+        x = targetRect.left;
+        y = targetRect.top - offsetPx;
+        el.style.translate = "0 -100%";
+        break;
+      case "top-end":
+        x = targetRect.right;
+        y = targetRect.top - offsetPx;
+        el.style.translate = "-100% -100%";
+        break;
+      case "bottom":
+        x = targetRect.left + targetRect.width / 2;
+        y = targetRect.bottom + offsetPx;
+        el.style.translate = "-50% 0";
+        break;
+      case "bottom-start":
+        x = targetRect.left;
+        y = targetRect.bottom + offsetPx;
+        el.style.translate = "0 0";
+        break;
+      case "bottom-end":
+        x = targetRect.right;
+        y = targetRect.bottom + offsetPx;
+        el.style.translate = "-100% 0";
+        break;
+      case "left":
+        x = targetRect.left - offsetPx;
+        y = targetRect.top + targetRect.height / 2;
+        el.style.translate = "-100% -50%";
+        break;
+      case "left-start":
+        x = targetRect.left - offsetPx;
+        y = targetRect.top;
+        el.style.translate = "-100% 0";
+        break;
+      case "left-end":
+        x = targetRect.left - offsetPx;
+        y = targetRect.bottom;
+        el.style.translate = "-100% -100%";
+        break;
+      case "right":
+        x = targetRect.right + offsetPx;
+        y = targetRect.top + targetRect.height / 2;
+        el.style.translate = "0 -50%";
+        break;
+      case "right-start":
+        x = targetRect.right + offsetPx;
+        y = targetRect.top;
+        el.style.translate = "0 0";
+        break;
+      case "right-end":
+        x = targetRect.right + offsetPx;
+        y = targetRect.bottom;
+        el.style.translate = "0 -100%";
+        break;
+      default:
+        x = targetRect.left + targetRect.width / 2;
+        y = targetRect.bottom + offsetPx;
+        el.style.translate = "-50% 0";
     }
-    finalPosition.x += window.scrollX;
-    finalPosition.y += window.scrollY;
+    x += window.scrollX;
+    y += window.scrollY;
     el.style.position = "absolute";
-    el.style.left = `${finalPosition.x}px`;
-    el.style.top = `${finalPosition.y}px`;
-    el.setAttribute("data-actual-placement", finalPosition.placement);
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
   };
   updatePosition();
   const handleUpdate = () => updatePosition();
@@ -264,47 +259,15 @@ var anchor_default = {
       offsetUnit
     });
     if (supportsCSSAnchor()) {
-      console.log("Datastar Anchor: Using CSS anchor positioning with smart flipping");
+      console.log("Datastar Anchor: Using CSS anchor positioning with position-try-options");
       const anchorName = generateAnchorName(targetId);
       targetElement.style["anchor-name"] = anchorName;
       const anchorStyles = getAnchorCSS(anchorName, placement, offsetValue, offsetUnit);
       Object.assign(el.style, anchorStyles);
-      console.log("Datastar Anchor: Applied CSS anchor styles", anchorStyles);
-      let hasFlipped = false;
-      const checkForFlipping = () => {
-        if (hasFlipped) return;
-        const elRect = el.getBoundingClientRect();
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-        const padding = 10;
-        const isSignificantlyOutOfBounds = elRect.right < padding || // Completely off left
-        elRect.left > viewportWidth - padding || // Completely off right
-        elRect.bottom < padding || // Completely off top
-        elRect.top > viewportHeight - padding;
-        if (isSignificantlyOutOfBounds) {
-          console.log("Datastar Anchor: Element significantly out of bounds, switching to JS fallback with flipping");
-          hasFlipped = true;
-          el.style.removeProperty("position-anchor");
-          el.style.removeProperty("top");
-          el.style.removeProperty("bottom");
-          el.style.removeProperty("left");
-          el.style.removeProperty("right");
-          el.style.removeProperty("translate");
-          return applyFallbackPositioning(el, targetElement, placement, offsetValue, offsetUnit);
-        }
-      };
-      setTimeout(checkForFlipping, 50);
-      const handleResize = () => {
-        if (!hasFlipped) {
-          setTimeout(checkForFlipping, 50);
-        }
-      };
-      window.addEventListener("resize", handleResize);
-      return () => {
-        window.removeEventListener("resize", handleResize);
-      };
+      console.log("Datastar Anchor: Applied CSS anchor styles with position-try-options", anchorStyles);
+      return;
     } else {
-      console.log("Datastar Anchor: CSS anchor positioning not supported, using fallback");
+      console.log("Datastar Anchor: CSS anchor positioning not supported, using basic fallback");
       return applyFallbackPositioning(el, targetElement, placement, offsetValue, offsetUnit);
     }
   }
