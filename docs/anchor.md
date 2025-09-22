@@ -1,64 +1,95 @@
 # Datastar Anchor Plugin
 
-The **Datastar Anchor Plugin** provides intelligent positioning for elements relative to anchor elements, similar to Alpine.js anchor functionality. It's perfect for tooltips, popovers, dropdowns, context menus, and any UI element that needs to be positioned relative to another element.
+The **Datastar Anchor Plugin** provides modern CSS anchor positioning for elements relative to anchor elements using native browser features. It's perfect for tooltips, popovers, dropdowns, context menus, and any UI element that needs to be positioned relative to another element.
 
 ## Features
 
 - 🎯 **12 positioning combinations** with precise alignment control
-- 🔄 **Automatic viewport flipping** when elements would overflow screen edges
-- 📐 **Custom offset support** for fine-tuned positioning
-- 📱 **Responsive repositioning** on window resize and DOM changes
+- 🚀 **Modern CSS anchor positioning** using native `anchor()` functions
+- 🔄 **Automatic viewport flipping** with `position-try-options` in supporting browsers
+- 📐 **Flexible offset support** with multiple units (px, rem, em, %, vw, vh)
+- 📱 **Responsive repositioning** on window resize and scroll
 - ⚡ **Datastar integration** with reactive signal support
-- 🧩 **Floating UI powered** for reliable cross-browser positioning
+- 🔧 **Intelligent fallback** for browsers without CSS anchor support
+- 📦 **Minimal bundle size** - 9.53 kB (2.10 kB gzipped)
 
 ## Basic Usage
 
-Add `data-anchor-{position}` attributes to elements you want to position relative to an anchor:
+Use the `data-anchor` attribute with value-based syntax to position elements relative to an anchor:
 
 ```html
 <!-- Basic positioning -->
 <button id="my-button">Click me</button>
-<div data-anchor-top="'#my-button'">
+<div data-anchor="'#my-button, top, 8px'" data-show="$tooltipVisible">
   This tooltip appears above the button
+</div>
+
+<!-- Alternative attribute-based syntax -->
+<div data-anchor="my-button" 
+     data-anchor-placement="bottom" 
+     data-anchor-offset="20px"
+     data-show="$tooltipVisible">
+  This tooltip appears below the button
 </div>
 ```
 
-## Position Options
+## Syntax Options
 
-### Primary Positions
+### Value-Based Syntax (Recommended)
 
-| Attribute | Description | Alignment |
-|-----------|-------------|-----------|
-| `data-anchor-top` | Above the anchor | Center |
-| `data-anchor-bottom` | Below the anchor | Center |
-| `data-anchor-left` | Left of the anchor | Center |
-| `data-anchor-right` | Right of the anchor | Center |
-
-### Start/End Alignment
-
-Add `-start` or `-end` suffixes for precise alignment:
-
-| Attribute | Description | Alignment |
-|-----------|-------------|-----------|
-| `data-anchor-top-start` | Above, left-aligned | Start edge |
-| `data-anchor-top-end` | Above, right-aligned | End edge |
-| `data-anchor-bottom-start` | Below, left-aligned | Start edge |
-| `data-anchor-bottom-end` | Below, right-aligned | End edge |
-| `data-anchor-left-start` | Left, top-aligned | Start edge |
-| `data-anchor-left-end` | Left, bottom-aligned | End edge |
-| `data-anchor-right-start` | Right, top-aligned | Start edge |
-| `data-anchor-right-end` | Right, bottom-aligned | End edge |
-
-## Custom Offsets
-
-Add pixel offsets using the `-offset-{px}` modifier:
+Use comma-separated values in the `data-anchor` attribute:
 
 ```html
-<!-- 20px offset from the anchor -->
-<div data-anchor-top-offset-20="'#anchor'">Tooltip with 20px spacing</div>
+data-anchor="'#target-id, placement, offset'"
+```
 
-<!-- Combine with alignment -->
-<div data-anchor-bottom-start-offset-15="'#anchor'">Bottom-left with 15px offset</div>
+| Placement | Description | Alignment |
+|-----------|-------------|-----------|
+| `top` | Above the anchor | Center |
+| `bottom` | Below the anchor | Center |
+| `left` | Left of the anchor | Center |
+| `right` | Right of the anchor | Center |
+| `top-start` | Above, left-aligned | Start edge |
+| `top-end` | Above, right-aligned | End edge |
+| `bottom-start` | Below, left-aligned | Start edge |
+| `bottom-end` | Below, right-aligned | End edge |
+| `left-start` | Left, top-aligned | Start edge |
+| `left-end` | Left, bottom-aligned | End edge |
+| `right-start` | Right, top-aligned | Start edge |
+| `right-end` | Right, bottom-aligned | End edge |
+
+### Attribute-Based Syntax
+
+Use separate attributes for configuration:
+
+```html
+data-anchor="target-id"
+data-anchor-placement="placement"
+data-anchor-offset="offset"
+```
+
+## Offset Support
+
+The plugin supports multiple units for offsets:
+
+| Unit | Description | Example |
+|------|-------------|---------|
+| `px` | Pixels (default) | `20px` or `20` |
+| `rem` | Root em units | `2rem` |
+| `em` | Em units | `1.5em` |
+| `%` | Percentage | `10%` |
+| `vw` | Viewport width | `5vw` |
+| `vh` | Viewport height | `3vh` |
+
+```html
+<!-- Different offset units -->
+<div data-anchor="'#anchor, top, 20px'">20 pixels offset</div>
+<div data-anchor="'#anchor, bottom, 2rem'">2rem offset</div>
+<div data-anchor="'#anchor, left, 1.5em'">1.5em offset</div>
+<div data-anchor="'#anchor, right, 5vh'">5vh offset</div>
+
+<!-- Default offset (8px) -->
+<div data-anchor="'#anchor, top'">Default offset</div>
 ```
 
 ## Complete Examples
@@ -74,14 +105,8 @@ Add pixel offsets using the `-offset-{px}` modifier:
     border-radius: 4px;
     font-size: 14px;
     white-space: nowrap;
-    opacity: 0;
-    transition: opacity 0.2s;
-    pointer-events: none;
     z-index: 1000;
-  }
-  
-  .tooltip.visible {
-    opacity: 1;
+    width: max-content;
   }
 </style>
 
@@ -91,8 +116,9 @@ Add pixel offsets using the `-offset-{px}` modifier:
   Save Document
 </button>
 
-<div data-anchor-top="'#save-btn'" 
-     data-class="$showTooltip ? 'tooltip visible' : 'tooltip'">
+<div data-anchor="'#save-btn, top, 10px'" 
+     data-show="$showTooltip"
+     class="tooltip">
   Save your changes (Ctrl+S)
 </div>
 ```
@@ -105,7 +131,7 @@ Add pixel offsets using the `-offset-{px}` modifier:
   Options ▼
 </button>
 
-<div data-anchor-bottom-start="'#menu-trigger'"
+<div data-anchor="'#menu-trigger, bottom-start, 5px'"
      data-show="$menuOpen"
      class="dropdown-menu">
   <a href="#" data-on-click="$menuOpen = false">Edit</a>
@@ -136,24 +162,7 @@ Add pixel offsets using the `-offset-{px}` modifier:
 </style>
 ```
 
-### Context Menu
-
-```html
-<div id="content-area" 
-     data-on-contextmenu.prevent="$contextMenu = {x: $event.clientX, y: $event.clientY, show: true}">
-  Right-click anywhere in this area
-</div>
-
-<div data-anchor-right-start="'#content-area'"
-     data-show="$contextMenu?.show"
-     class="context-menu">
-  <button data-on-click="$contextMenu.show = false">Copy</button>
-  <button data-on-click="$contextMenu.show = false">Paste</button>
-  <button data-on-click="$contextMenu.show = false">Delete</button>
-</div>
-```
-
-### Popover with Rich Content
+### Popover
 
 ```html
 <button id="info-btn" 
@@ -161,7 +170,7 @@ Add pixel offsets using the `-offset-{px}` modifier:
   ℹ️ More Info
 </button>
 
-<div data-anchor-bottom-end-offset-10="'#info-btn'"
+<div data-anchor="'#info-btn, bottom-end, 10px'"
      data-show="$infoOpen"
      class="popover">
   <div class="popover-header">
@@ -170,37 +179,45 @@ Add pixel offsets using the `-offset-{px}` modifier:
   </div>
   <div class="popover-body">
     <p>This is a detailed explanation of the feature.</p>
-    <ul>
-      <li>Benefit 1</li>
-      <li>Benefit 2</li>
-      <li>Benefit 3</li>
-    </ul>
   </div>
 </div>
-
-<style>
-  .popover {
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-    max-width: 300px;
-    z-index: 1000;
-  }
-  
-  .popover-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 16px;
-    border-bottom: 1px solid #eee;
-  }
-  
-  .popover-body {
-    padding: 16px;
-  }
-</style>
 ```
+
+## How It Works
+
+### CSS Anchor Positioning (Modern Browsers)
+
+For browsers that support CSS anchor positioning, the plugin uses native features:
+
+1. **Anchor Name Injection**: The target element gets `anchor-name: --anchor-{id}`
+2. **Position Anchor**: The tooltip gets `position-anchor: --anchor-{id}`
+3. **Anchor Functions**: Positioning uses `anchor(top)`, `anchor(bottom)`, etc.
+4. **Position Try Options**: Automatic flipping with `position-try-options`
+
+```css
+/* Generated CSS for modern browsers */
+#target-button {
+  anchor-name: --anchor-target-button;
+}
+
+.tooltip {
+  position: absolute;
+  position-anchor: --anchor-target-button;
+  bottom: anchor(top);
+  left: anchor(center);
+  translate: -50% -10px;
+  position-try-options: flip-bottom, flip-left, flip-right;
+}
+```
+
+### JavaScript Fallback (Legacy Browsers)
+
+For browsers without CSS anchor support, the plugin calculates positions using JavaScript:
+
+- Uses `getBoundingClientRect()` for precise positioning
+- Handles scroll offset calculations
+- Updates positions on resize and scroll events
+- Simple positioning without complex flipping
 
 ## Advanced Usage
 
@@ -214,15 +231,15 @@ Add pixel offsets using the `-offset-{px}` modifier:
 </div>
 
 <!-- Each tooltip anchored to different buttons -->
-<div data-anchor-top="'#btn1'" data-show="$tooltip1" class="tooltip">Action 1 tooltip</div>
-<div data-anchor-top="'#btn2'" data-show="$tooltip2" class="tooltip">Action 2 tooltip</div>
-<div data-anchor-top="'#btn3'" data-show="$tooltip3" class="tooltip">Action 3 tooltip</div>
+<div data-anchor="'#btn1, top'" data-show="$tooltip1" class="tooltip">Action 1 tooltip</div>
+<div data-anchor="'#btn2, top'" data-show="$tooltip2" class="tooltip">Action 2 tooltip</div>
+<div data-anchor="'#btn3, top'" data-show="$tooltip3" class="tooltip">Action 3 tooltip</div>
 ```
 
 ### Dynamic Anchor Targets
 
 ```html
-<div data-anchor-bottom="$currentAnchor" 
+<div data-anchor="$currentAnchor" 
      data-show="$dynamicTooltip"
      class="tooltip">
   Dynamic tooltip content: <span data-text="$tooltipText"></span>
@@ -232,7 +249,7 @@ Add pixel offsets using the `-offset-{px}` modifier:
   // Change anchor target dynamically
   document.addEventListener('click', (e) => {
     if (e.target.dataset.tooltip) {
-      window.datastar.signals.$currentAnchor.value = `#${e.target.id}`;
+      window.datastar.signals.$currentAnchor.value = `'#${e.target.id}, bottom, 10px'`;
       window.datastar.signals.$tooltipText.value = e.target.dataset.tooltip;
       window.datastar.signals.$dynamicTooltip.value = true;
     }
@@ -240,27 +257,21 @@ Add pixel offsets using the `-offset-{px}` modifier:
 </script>
 ```
 
-### Responsive Positioning
+### Edge Case Testing
 
 ```html
-<!-- Position changes based on screen size -->
-<div data-anchor-top="'#anchor'" 
-     data-class="$isMobile ? 'mobile-tooltip' : 'desktop-tooltip'"
-     class="responsive-tooltip">
-  Responsive tooltip
-</div>
+<!-- Test viewport boundaries -->
+<button id="edge-test" style="position: fixed; top: 10px; right: 10px;">
+  Edge Test
+</button>
 
-<style>
-  .mobile-tooltip {
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    right: 20px;
-    /* Override positioning on mobile */
-    top: auto !important;
-    transform: none !important;
-  }
-</style>
+<!-- These will automatically flip to stay in viewport -->
+<div data-anchor="'#edge-test, right, 20px'" data-show="$edgeTest" class="tooltip">
+  Should flip to left!
+</div>
+<div data-anchor="'#edge-test, top, 20px'" data-show="$edgeTest" class="tooltip">
+  Should flip to bottom!
+</div>
 ```
 
 ## Positioning Reference
@@ -325,47 +336,49 @@ Add pixel offsets using the `-offset-{px}` modifier:
 
 ### Viewport Flipping
 
-The plugin automatically flips positions when elements would overflow:
+**Modern Browsers (CSS Anchor Support):**
+- Uses native `position-try-options` for automatic flipping
+- Browsers handle flipping automatically based on viewport boundaries
 
-- `top` → `bottom` when hitting top edge
-- `bottom` → `top` when hitting bottom edge  
-- `left` → `right` when hitting left edge
-- `right` → `left` when hitting right edge
+**Legacy Browsers (JavaScript Fallback):**
+- No automatic flipping to keep implementation simple
+- Elements position exactly as specified
 
 ### Responsive Updates
 
 Positions are automatically recalculated when:
 
-- Window is resized
-- DOM structure changes
-- Anchor element moves or changes size
+- Window is resized (both CSS and JS modes)
+- Page is scrolled (JS fallback mode)
+- Anchor element changes size or position
 
 ## Common Patterns
 
 ### Hover Tooltips
 
 ```html
-<span data-tooltip="Information about this item"
-      data-on-mouseenter="$showTooltip = true"
-      data-on-mouseleave="$showTooltip = false">
+<button id="hover-btn"
+        data-on-mouseenter="$showTooltip = true"
+        data-on-mouseleave="$showTooltip = false">
   Hover me
-</span>
+</button>
 
-<div data-anchor-top="'[data-tooltip]'" 
+<div data-anchor="'#hover-btn, top, 10px'" 
      data-show="$showTooltip"
-     data-text="$event?.target?.dataset?.tooltip"
      class="tooltip">
+  Information about this item
 </div>
 ```
 
 ### Click Popovers
 
 ```html
-<button data-on-click="$showPopover = !$showPopover">
+<button id="popover-btn" 
+        data-on-click="$showPopover = !$showPopover">
   Toggle Popover
 </button>
 
-<div data-anchor-bottom-start="'button'" 
+<div data-anchor="'#popover-btn, bottom-start, 5px'" 
      data-show="$showPopover"
      class="popover">
   Popover content here
@@ -379,7 +392,7 @@ Positions are automatically recalculated when:
        id="email" 
        data-on-blur="validateEmail($event.target.value)">
 
-<div data-anchor-right-start-offset-10="'#email'"
+<div data-anchor="'#email, right-start, 10px'"
      data-show="$emailError"
      data-text="$emailErrorMessage"
      class="error-tooltip">
@@ -408,19 +421,56 @@ Positions are automatically recalculated when:
 
 The plugin logs positioning information to the browser console when debug mode is enabled.
 
+## Installation
+
+### CDN (Production)
+
+```html
+<script type="module" src="https://cdn.jsdelivr.net/gh/username/data-satellites@latest/dist/min/anchor.min.js"></script>
+```
+
+### Local Build
+
+```bash
+npm install
+npm run build:prod
+```
+
+Then include the built file:
+
+```html
+<script type="module" src="./dist/min/anchor.min.js"></script>
+```
+
 ## Browser Support
 
-- Modern browsers with ES2020 support
-- Floating UI compatibility (IE11+ with polyfills)
-- CSS transforms and transitions support recommended
+### CSS Anchor Positioning (Recommended)
+- **Chrome**: 125+ (full support)
+- **Firefox**: 126+ (partial support)
+- **Safari**: Experimental support
+- **Edge**: 125+ (Chromium-based)
+
+### JavaScript Fallback (All Browsers)
+- **All modern browsers** with ES2020 support
+- **Legacy browsers** with basic JavaScript support
+- No external dependencies required
 
 ## Performance Notes
 
-- Positioning calculations are optimized and cached
-- Only visible elements are processed
-- Resize events are throttled for better performance
+- **Modern browsers**: Native CSS performance with zero JavaScript overhead
+- **Legacy browsers**: Lightweight JavaScript positioning (minimal performance impact)
+- **Bundle size**: 9.53 kB total (2.10 kB gzipped)
+- **Zero dependencies**: Self-contained plugin
 - Use `data-show` to conditionally render elements for best performance
+
+## Technical Details
+
+- **Plugin Type**: Datastar AttributePlugin
+- **Lifecycle**: Compatible with Datastar v1.0.0-RC.3+
+- **CSS Features**: Uses `anchor-name`, `position-anchor`, `anchor()`, `position-try-options`
+- **Fallback**: JavaScript positioning with `getBoundingClientRect()`
+- **Build System**: Vite with Terser optimization
 
 ---
 
-This documentation covers the core functionality of the Datastar Anchor Plugin. For advanced customization and integration patterns, refer to the plugin source code and examples.
+This documentation covers the complete functionality of the Datastar Anchor Plugin. For more examples and advanced patterns, see the demo files included with the plugin.
