@@ -1,388 +1,378 @@
 /**
- * Datastar Anchor Plugin
+ * Datastar Anchor Plugin - CSS Anchor Positioning Implementation
  * 
- * Inspired by Alpine.js anchor plugin, provides intelligent positioning
- * of elements relative to anchor elements with viewport-aware flipping.
+ * Uses modern CSS anchor positioning for high-performance, native positioning.
+ * Automatically injects anchor-name CSS into target elements and uses anchor() 
+ * function for positioned elements.
  * 
  * Features:
- * - Anchor by element ID reference
- * - Multiple position options (top, bottom, left, right, etc.)
- * - Configurable offset
- * - Automatic viewport boundary detection and flipping
- * - Responsive positioning on scroll/resize
- * 
- * Usage Examples:
- * <div data-anchor="'#myButton'">Basic anchoring</div>
- * <div data-anchor-bottom="'#trigger'">Bottom positioned</div>
- * <div data-anchor-top-offset-20="'#target'">Top with 20px offset</div>
+ * - CSS-native anchor positioning (Chrome 125+)
+ * - Automatic anchor-name injection
+ * - Multiple placement options
+ * - Custom offset values with units
+ * - Fallback for unsupported browsers
  */
 
-// Core positioning logic using Floating UI principles
-interface AnchorPosition {
-  x: number;
-  y: number;
+interface AttributePlugin {
+  type: "attribute";
+  name: string;
+  keyReq: "allowed" | "denied" | "starts" | "exact";
+  valReq?: "allowed" | "denied" | "must";
+  shouldEvaluate?: boolean;
+  onLoad: (ctx: RuntimeContext) => OnRemovalFn | void;
 }
 
-interface AnchorOptions {
-  placement: string;
-  offsetValue: number;
+interface RuntimeContext {
+  el: HTMLElement;
+  key: string;
+  value: string;
+  mods: Map<string, any>;
+  effect: (fn: () => void) => () => void;
+  getPath: (path: string) => any;
+  mergePatch: (patch: Record<string, any>) => void;
+  startBatch: () => void;
+  endBatch: () => void;
 }
 
-interface ElementRect {
-  width: number;
-  height: number;
-  x: number;
-  y: number;
-  top: number;
-  right: number;
-  bottom: number;
-  left: number;
-}
+type OnRemovalFn = () => void;
 
-// Simple Floating UI-inspired positioning implementation
-class FloatingUICore {
-  static computePosition(
-    reference: HTMLElement,
-    floating: HTMLElement,
-    options: { placement?: string; offset?: number } = {}
-  ): AnchorPosition {
-    const { placement = 'bottom', offset = 0 } = options;
-    
-    const refRect = reference.getBoundingClientRect();
-    const floatingRect = floating.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    
-    let x = 0;
-    let y = 0;
-    let finalPlacement = placement;
-    
-    // Calculate base position
-    switch (placement) {
-      case 'top':
-        x = refRect.left + (refRect.width - floatingRect.width) / 2;
-        y = refRect.top - floatingRect.height - offset;
-        break;
-      case 'top-start':
-        x = refRect.left;
-        y = refRect.top - floatingRect.height - offset;
-        break;
-      case 'top-end':
-        x = refRect.right - floatingRect.width;
-        y = refRect.top - floatingRect.height - offset;
-        break;
-      case 'bottom':
-        x = refRect.left + (refRect.width - floatingRect.width) / 2;
-        y = refRect.bottom + offset;
-        break;
-      case 'bottom-start':
-        x = refRect.left;
-        y = refRect.bottom + offset;
-        break;
-      case 'bottom-end':
-        x = refRect.right - floatingRect.width;
-        y = refRect.bottom + offset;
-        break;
-      case 'left':
-        x = refRect.left - floatingRect.width - offset;
-        y = refRect.top + (refRect.height - floatingRect.height) / 2;
-        break;
-      case 'left-start':
-        x = refRect.left - floatingRect.width - offset;
-        y = refRect.top;
-        break;
-      case 'left-end':
-        x = refRect.left - floatingRect.width - offset;
-        y = refRect.bottom - floatingRect.height;
-        break;
-      case 'right':
-        x = refRect.right + offset;
-        y = refRect.top + (refRect.height - floatingRect.height) / 2;
-        break;
-      case 'right-start':
-        x = refRect.right + offset;
-        y = refRect.top;
-        break;
-      case 'right-end':
-        x = refRect.right + offset;
-        y = refRect.bottom - floatingRect.height;
-        break;
-      default:
-        finalPlacement = 'bottom';
-        x = refRect.left + (refRect.width - floatingRect.width) / 2;
-        y = refRect.bottom + offset;
-    }
-    
-    // Viewport boundary detection and flipping
-    const padding = 5; // Minimum distance from viewport edge
-    
-    // Check if element would go outside viewport and flip if needed
-    if (x < padding) {
-      // Element goes off left edge
-      if (finalPlacement.includes('left')) {
-        // Flip to right
-        finalPlacement = finalPlacement.replace('left', 'right');
-        x = refRect.right + offset;
-      } else {
-        x = padding;
-      }
-    } else if (x + floatingRect.width > viewportWidth - padding) {
-      // Element goes off right edge
-      if (finalPlacement.includes('right')) {
-        // Flip to left
-        finalPlacement = finalPlacement.replace('right', 'left');
-        x = refRect.left - floatingRect.width - offset;
-      } else {
-        x = viewportWidth - floatingRect.width - padding;
-      }
-    }
-    
-    if (y < padding) {
-      // Element goes off top edge
-      if (finalPlacement.includes('top')) {
-        // Flip to bottom
-        finalPlacement = finalPlacement.replace('top', 'bottom');
-        y = refRect.bottom + offset;
-      } else {
-        y = padding;
-      }
-    } else if (y + floatingRect.height > viewportHeight - padding) {
-      // Element goes off bottom edge
-      if (finalPlacement.includes('bottom')) {
-        // Flip to top
-        finalPlacement = finalPlacement.replace('bottom', 'top');
-        y = refRect.top - floatingRect.height - offset;
-      } else {
-        y = viewportHeight - floatingRect.height - padding;
-      }
-    }
-    
-    // Account for scroll position
-    x += window.scrollX;
-    y += window.scrollY;
-    
-    return { x, y };
-  }
-}
-
-// Auto-update functionality for responsive positioning
-class AutoUpdate {
-  private cleanup: (() => void) | null = null;
-  
-  constructor(
-    private reference: HTMLElement,
-    private floating: HTMLElement,
-    private updateCallback: () => void
-  ) {
-    this.startUpdating();
-  }
-  
-  private startUpdating(): void {
-    const updatePosition = () => this.updateCallback();
-    
-    // Listen for various events that might affect positioning
-    window.addEventListener('scroll', updatePosition, { passive: true });
-    window.addEventListener('resize', updatePosition);
-    
-    // Use ResizeObserver for more granular updates if available
-    let resizeObserver: ResizeObserver | null = null;
-    if (window.ResizeObserver) {
-      resizeObserver = new ResizeObserver(updatePosition);
-      resizeObserver.observe(this.reference);
-      resizeObserver.observe(this.floating);
-    }
-    
-    // Use MutationObserver to watch for layout changes
-    let mutationObserver: MutationObserver | null = null;
-    if (window.MutationObserver) {
-      mutationObserver = new MutationObserver(updatePosition);
-      mutationObserver.observe(document.body, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['style', 'class']
-      });
-    }
-    
-    this.cleanup = () => {
-      window.removeEventListener('scroll', updatePosition);
-      window.removeEventListener('resize', updatePosition);
-      if (resizeObserver) {
-        resizeObserver.disconnect();
-      }
-      if (mutationObserver) {
-        mutationObserver.disconnect();
-      }
-    };
-  }
-  
-  destroy(): void {
-    if (this.cleanup) {
-      this.cleanup();
-      this.cleanup = null;
-    }
-  }
-}
-
-// Datastar Anchor Plugin Implementation
-const AnchorPlugin = {
-  name: 'anchor',
-  type: 'Attribute' as const,
-  
-  // Track auto-update instances for cleanup
-  autoUpdateInstances: new WeakMap<HTMLElement, AutoUpdate>(),
-  
-  apply(element: HTMLElement, key: string, value: string): void {
-    try {
-      // Parse modifiers from the key (e.g., "anchor-bottom-offset-10")
-      const options = this.parseModifiers(key);
-      
-      // Get the target element from the expression
-      const targetSelector = this.evaluateExpression(value);
-      if (!targetSelector) {
-        console.warn('Datastar Anchor: No target selector provided');
-        return;
-      }
-      
-      // Find the reference element
-      const targetElement = this.findTargetElement(targetSelector);
-      if (!targetElement) {
-        console.error(`Datastar Anchor: Target element not found: ${targetSelector}`);
-        return;
-      }
-      
-      // Ensure element is positioned
-      this.prepareFloatingElement(element);
-      
-      // Position the element initially
-      this.positionElement(element, targetElement, options);
-      
-      // Set up auto-update for responsive positioning
-      this.setupAutoUpdate(element, targetElement, options);
-      
-    } catch (error) {
-      console.error('Datastar Anchor: Error applying plugin:', error);
-    }
-  },
-  
-  cleanup(element: HTMLElement): void {
-    // Clean up auto-update instance
-    const autoUpdate = this.autoUpdateInstances.get(element);
-    if (autoUpdate) {
-      autoUpdate.destroy();
-      this.autoUpdateInstances.delete(element);
-    }
-  },
-  
-  parseModifiers(key: string): AnchorOptions {
-    const parts = key.split('-');
-    // Order positions by specificity (longer matches first)
-    const positions = [
-      'top-start', 'top-end', 'bottom-start', 'bottom-end',
-      'left-start', 'left-end', 'right-start', 'right-end',
-      'top', 'bottom', 'left', 'right'
-    ];
-    
-    // Find placement - prioritize more specific matches
-    let placement = 'bottom'; // default
-    for (const position of positions) {
-      if (key.includes(position)) {
-        placement = position;
-        break;
-      }
-    }
-    
-    // Find offset value
-    let offsetValue = 10; // default
-    const offsetIndex = parts.findIndex(part => part === 'offset');
-    if (offsetIndex !== -1 && parts[offsetIndex + 1]) {
-      const parsedOffset = parseInt(parts[offsetIndex + 1], 10);
-      if (!isNaN(parsedOffset)) {
-        offsetValue = parsedOffset;
-      }
-    }
-    
-    return { placement, offsetValue };
-  },
-  
-  evaluateExpression(value: string): string | null {
-    // Simple expression evaluation - in a real Datastar context,
-    // this would integrate with the signal system
-    if (value.startsWith("'") && value.endsWith("'")) {
-      return value.slice(1, -1);
-    }
-    
-    // For signal references like $triggerRef, this would need
-    // integration with Datastar's signal system
-    if (value.startsWith('$')) {
-      console.warn('Datastar Anchor: Signal references not yet implemented');
-      return null;
-    }
-    
-    return value;
-  },
-  
-  findTargetElement(selector: string): HTMLElement | null {
-    if (selector.startsWith('#')) {
-      return document.getElementById(selector.slice(1));
-    }
-    
-    return document.querySelector(selector) as HTMLElement;
-  },
-  
-  prepareFloatingElement(element: HTMLElement): void {
-    // Ensure the element can be positioned
-    const style = element.style;
-    style.position = 'absolute';
-    style.top = '0';
-    style.left = '0';
-    style.width = 'max-content';
-    style.zIndex = '1000';
-  },
-  
-  positionElement(
-    element: HTMLElement, 
-    target: HTMLElement, 
-    options: AnchorOptions
-  ): void {
-    const position = FloatingUICore.computePosition(target, element, {
-      placement: options.placement,
-      offset: options.offsetValue
-    });
-    
-    // Apply the calculated position
-    element.style.left = `${position.x}px`;
-    element.style.top = `${position.y}px`;
-  },
-  
-  setupAutoUpdate(
-    element: HTMLElement,
-    target: HTMLElement,
-    options: AnchorOptions
-  ): void {
-    // Clean up any existing auto-update
-    this.cleanup(element);
-    
-    // Create new auto-update instance
-    const autoUpdate = new AutoUpdate(target, element, () => {
-      this.positionElement(element, target, options);
-    });
-    
-    this.autoUpdateInstances.set(element, autoUpdate);
+// CSS Anchor positioning support detection
+const supportsCSSAnchor = (): boolean => {
+  try {
+    return CSS.supports('anchor-name', '--test') && CSS.supports('top', 'anchor(top)');
+  } catch {
+    return false;
   }
 };
 
-// Export for module systems
-export default AnchorPlugin;
+// Generate unique anchor name
+const generateAnchorName = (targetId: string): string => {
+  return `--anchor-${targetId.replace(/[^a-zA-Z0-9]/g, '-')}`;
+};
 
-// Also support direct script inclusion
-if (typeof window !== 'undefined') {
-  // @ts-ignore - Global Datastar integration
-  if (window.datastar && window.datastar.load) {
-    // @ts-ignore
-    window.datastar.load(AnchorPlugin);
+// Parse placement and offset from value or separate attributes
+const parseAnchorConfig = (el: HTMLElement, value: string) => {
+  // Remove quotes and clean the value
+  const cleanValue = value.replace(/^['"]|['"]$/g, '').trim();
+  
+  // Check if value contains commas (value-based syntax)
+  if (cleanValue.includes(',')) {
+    // Parse: "#target, placement, offset"
+    const parts = cleanValue.split(',').map(part => part.trim()).filter(part => part.length > 0);
+    
+    const target = parts[0] || '';
+    const placement = parts[1] || 'bottom';
+    
+    // Parse offset from third part
+    let offsetValue = 8;
+    let offsetUnit = 'px';
+    
+    if (parts[2]) {
+      const offsetMatch = parts[2].match(/^(\d+(?:\.\d+)?)\s*([a-z%]*)?$/);
+      if (offsetMatch) {
+        offsetValue = parseFloat(offsetMatch[1]);
+        offsetUnit = offsetMatch[2] || 'px';
+      }
+    }
+    
+    return { target, placement, offsetValue, offsetUnit };
   } else {
-    // @ts-ignore - Make available globally
-    window.DatastarAnchorPlugin = AnchorPlugin;
+    // Attribute-based syntax: separate attributes
+    const target = cleanValue || el.getAttribute('data-anchor') || '';
+    const placement = el.getAttribute('data-anchor-placement') || 'bottom';
+    
+    const offsetAttr = el.getAttribute('data-anchor-offset') || '8';
+    const offsetMatch = offsetAttr.match(/^(\d+(?:\.\d+)?)\s*([a-z%]*)?$/);
+    const offsetValue = offsetMatch ? parseFloat(offsetMatch[1]) : 8;
+    const offsetUnit = offsetMatch?.[2] || 'px';
+    
+    return { target, placement, offsetValue, offsetUnit };
   }
-}
+};
+
+// Convert placement to CSS anchor positioning with position-try-options
+const getAnchorCSS = (anchorName: string, placement: string, offsetValue: number, offsetUnit: string): Record<string, string> => {
+  const offset = `${offsetValue}${offsetUnit}`;
+  
+  const styles: Record<string, string> = {
+    position: 'absolute',
+    'position-anchor': anchorName,
+    'position-try-options': getPositionTryOptions(placement)
+  };
+  
+  switch (placement) {
+    case 'top':
+      styles.bottom = `anchor(top)`;
+      styles.left = `anchor(center)`;
+      styles.translate = `-50% -${offset}`;
+      break;
+    case 'top-start':
+      styles.bottom = `anchor(top)`;
+      styles.left = `anchor(left)`;
+      styles.translate = `0 -${offset}`;
+      break;
+    case 'top-end':
+      styles.bottom = `anchor(top)`;
+      styles.right = `anchor(right)`;
+      styles.translate = `0 -${offset}`;
+      break;
+    case 'bottom':
+      styles.top = `anchor(bottom)`;
+      styles.left = `anchor(center)`;
+      styles.translate = `-50% ${offset}`;
+      break;
+    case 'bottom-start':
+      styles.top = `anchor(bottom)`;
+      styles.left = `anchor(left)`;
+      styles.translate = `0 ${offset}`;
+      break;
+    case 'bottom-end':
+      styles.top = `anchor(bottom)`;
+      styles.right = `anchor(right)`;
+      styles.translate = `0 ${offset}`;
+      break;
+    case 'left':
+      styles.right = `anchor(left)`;
+      styles.top = `anchor(center)`;
+      styles.translate = `-${offset} -50%`;
+      break;
+    case 'left-start':
+      styles.right = `anchor(left)`;
+      styles.top = `anchor(top)`;
+      styles.translate = `-${offset} 0`;
+      break;
+    case 'left-end':
+      styles.right = `anchor(left)`;
+      styles.bottom = `anchor(bottom)`;
+      styles.translate = `-${offset} 0`;
+      break;
+    case 'right':
+      styles.left = `anchor(right)`;
+      styles.top = `anchor(center)`;
+      styles.translate = `${offset} -50%`;
+      break;
+    case 'right-start':
+      styles.left = `anchor(right)`;
+      styles.top = `anchor(top)`;
+      styles.translate = `${offset} 0`;
+      break;
+    case 'right-end':
+      styles.left = `anchor(right)`;
+      styles.bottom = `anchor(bottom)`;
+      styles.translate = `${offset} 0`;
+      break;
+    default:
+      // Default to bottom
+      styles.top = `anchor(bottom)`;
+      styles.left = `anchor(center)`;
+      styles.translate = `-50% ${offset}`;
+  }
+  
+  return styles;
+};
+
+// Generate position-try-options for automatic flipping
+const getPositionTryOptions = (placement: string): string => {
+  // Define fallback placements based on the primary placement
+  const fallbacks: Record<string, string[]> = {
+    'top': ['bottom', 'left', 'right'],
+    'top-start': ['bottom-start', 'top-end', 'bottom-end'],
+    'top-end': ['bottom-end', 'top-start', 'bottom-start'],
+    'bottom': ['top', 'left', 'right'],
+    'bottom-start': ['top-start', 'bottom-end', 'top-end'],
+    'bottom-end': ['top-end', 'bottom-start', 'top-start'],
+    'left': ['right', 'top', 'bottom'],
+    'left-start': ['right-start', 'left-end', 'right-end'],
+    'left-end': ['right-end', 'left-start', 'right-start'],
+    'right': ['left', 'top', 'bottom'],
+    'right-start': ['left-start', 'right-end', 'left-end'],
+    'right-end': ['left-end', 'right-start', 'left-start']
+  };
+  
+  const fallbackPlacements = fallbacks[placement] || ['bottom', 'top', 'left', 'right'];
+  
+  // Convert to CSS position-try-options format
+  return fallbackPlacements.map(p => `flip-${p}`).join(', ');
+};
+
+// Simple fallback positioning for browsers without CSS anchor support
+const applyFallbackPositioning = (el: HTMLElement, target: HTMLElement, placement: string, offsetValue: number, offsetUnit: string): OnRemovalFn => {
+  console.log('Using simple fallback positioning for', placement);
+  
+  const updatePosition = () => {
+    const targetRect = target.getBoundingClientRect();
+    
+    // Convert offset to pixels
+    let offsetPx = offsetValue;
+    switch (offsetUnit) {
+      case 'rem':
+        offsetPx = offsetValue * parseFloat(getComputedStyle(document.documentElement).fontSize);
+        break;
+      case 'em':
+        offsetPx = offsetValue * parseFloat(getComputedStyle(el).fontSize);
+        break;
+      case 'vw':
+        offsetPx = (offsetValue / 100) * window.innerWidth;
+        break;
+      case 'vh':
+        offsetPx = (offsetValue / 100) * window.innerHeight;
+        break;
+    }
+    
+    let x = 0, y = 0;
+    
+    // Calculate position based on placement (no flipping)
+    switch (placement) {
+      case 'top':
+        x = targetRect.left + targetRect.width / 2;
+        y = targetRect.top - offsetPx;
+        el.style.translate = '-50% -100%';
+        break;
+      case 'top-start':
+        x = targetRect.left;
+        y = targetRect.top - offsetPx;
+        el.style.translate = '0 -100%';
+        break;
+      case 'top-end':
+        x = targetRect.right;
+        y = targetRect.top - offsetPx;
+        el.style.translate = '-100% -100%';
+        break;
+      case 'bottom':
+        x = targetRect.left + targetRect.width / 2;
+        y = targetRect.bottom + offsetPx;
+        el.style.translate = '-50% 0';
+        break;
+      case 'bottom-start':
+        x = targetRect.left;
+        y = targetRect.bottom + offsetPx;
+        el.style.translate = '0 0';
+        break;
+      case 'bottom-end':
+        x = targetRect.right;
+        y = targetRect.bottom + offsetPx;
+        el.style.translate = '-100% 0';
+        break;
+      case 'left':
+        x = targetRect.left - offsetPx;
+        y = targetRect.top + targetRect.height / 2;
+        el.style.translate = '-100% -50%';
+        break;
+      case 'left-start':
+        x = targetRect.left - offsetPx;
+        y = targetRect.top;
+        el.style.translate = '-100% 0';
+        break;
+      case 'left-end':
+        x = targetRect.left - offsetPx;
+        y = targetRect.bottom;
+        el.style.translate = '-100% -100%';
+        break;
+      case 'right':
+        x = targetRect.right + offsetPx;
+        y = targetRect.top + targetRect.height / 2;
+        el.style.translate = '0 -50%';
+        break;
+      case 'right-start':
+        x = targetRect.right + offsetPx;
+        y = targetRect.top;
+        el.style.translate = '0 0';
+        break;
+      case 'right-end':
+        x = targetRect.right + offsetPx;
+        y = targetRect.bottom;
+        el.style.translate = '0 -100%';
+        break;
+      default:
+        // Default to bottom
+        x = targetRect.left + targetRect.width / 2;
+        y = targetRect.bottom + offsetPx;
+        el.style.translate = '-50% 0';
+    }
+    
+    // Account for scroll
+    x += window.scrollX;
+    y += window.scrollY;
+    
+    el.style.position = 'absolute';
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+  };
+  
+  // Initial positioning
+  updatePosition();
+  
+  // Update on scroll and resize
+  const handleUpdate = () => updatePosition();
+  window.addEventListener('scroll', handleUpdate, { passive: true });
+  window.addEventListener('resize', handleUpdate);
+  
+  // Return cleanup function
+  return () => {
+    window.removeEventListener('scroll', handleUpdate);
+    window.removeEventListener('resize', handleUpdate);
+  };
+};
+
+export default {
+  type: "attribute",
+  name: "anchor",
+  keyReq: "exact",
+
+  onLoad({ el, value }: RuntimeContext): OnRemovalFn | void {
+    console.log('Datastar Anchor: Plugin loaded for element', el, { value });
+    
+    const { target, placement, offsetValue, offsetUnit } = parseAnchorConfig(el, value);
+    
+    if (!target) {
+      console.warn('Datastar Anchor: No target specified');
+      return;
+    }
+    
+    // Find target element
+    let targetElement: HTMLElement | null = null;
+    if (target.startsWith('#')) {
+      targetElement = document.getElementById(target.slice(1));
+    } else {
+      targetElement = document.querySelector(target) as HTMLElement;
+    }
+    
+    if (!targetElement) {
+      console.error('Datastar Anchor: Target element not found:', target);
+      return;
+    }
+    
+    const targetId = targetElement.id || `anchor-${Date.now()}`;
+    if (!targetElement.id) {
+      targetElement.id = targetId;
+    }
+    
+    console.log('Datastar Anchor: Positioning', el, 'relative to', targetElement, {
+      placement, offsetValue, offsetUnit
+    });
+    
+    if (supportsCSSAnchor()) {
+      console.log('Datastar Anchor: Using CSS anchor positioning with position-try-options');
+      
+      // Generate unique anchor name
+      const anchorName = generateAnchorName(targetId);
+      
+      // Inject anchor-name into target element
+      (targetElement.style as any)['anchor-name'] = anchorName;
+      
+      // Apply CSS anchor positioning to the anchored element
+      const anchorStyles = getAnchorCSS(anchorName, placement, offsetValue, offsetUnit);
+      Object.assign(el.style, anchorStyles);
+      
+      console.log('Datastar Anchor: Applied CSS anchor styles with position-try-options', anchorStyles);
+      
+      // No cleanup needed for pure CSS positioning
+      return;
+    } else {
+      console.log('Datastar Anchor: CSS anchor positioning not supported, using basic fallback');
+      
+      // Use simple JavaScript fallback without complex flipping
+      return applyFallbackPositioning(el, targetElement, placement, offsetValue, offsetUnit);
+    }
+  },
+} satisfies AttributePlugin;

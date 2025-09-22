@@ -5,11 +5,12 @@
   "main": "dist/anchor.js",
   "type": "module",
   "scripts": {
-    "build": "tsc",
-    "build:watch": "tsc --watch",
-    "dev": "tsc --watch & npx serve . -p 8080",
+    "build": "echo 'Building plugins...' && vite build && echo '✅ Build complete!'",
+    "build:prod": "echo 'Building minified production plugins...' && vite build --mode production && echo '✅ Production build complete!'",
+    "build:watch": "vite build --watch",
+    "dev": "vite build --watch & npx serve . -p 8080",
     "serve": "npx serve . -p 8080",
-    "clean": "rm -rf dist && tsc",
+    "clean": "rm -rf dist && vite build",
     "test": "node test-server.js",
     "test:local": "npm run build && node test-server.js",
     "test:cdn": "start demos/auto-load-test.html",
@@ -29,7 +30,9 @@
   ],
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vite": "^5.0.0",
+    "terser": "^5.43.1"
   },
   "author": "Data Satellites Contributors",
   "license": "MIT",
@@ -47,5 +50,6 @@
   "bugs": {
     "url": "https://github.com/ndendic/data-satellites/issues"
   },
-  "homepage": "https://github.com/ndendic/data-satellites#readme"
+  "homepage": "https://github.com/ndendic/data-satellites#readme",
+  "dependencies": {}
 }
