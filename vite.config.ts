@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   build: {
     lib: {
       entry: {
@@ -10,24 +10,39 @@ export default defineConfig({
         'Index': './src/Index.ts'
       },
       formats: ['es'],
-      fileName: (format, entryName) => `${entryName}.js`
+      fileName: (format, entryName) => mode === 'production' 
+        ? `${entryName}.min.js` 
+        : `${entryName}.js`
     },
-    outDir: './dist/src',
+    outDir: mode === 'production' ? './dist/min' : './dist/src',
     target: 'es2020',
     minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: false, // Keep console for debugging
+        drop_console: true, // Remove all console logs for production
         drop_debugger: true,
-        passes: 2,
+        pure_funcs: ['console.log', 'console.debug', 'console.info', 'console.warn'],
+        passes: 3, // More aggressive optimization passes
         unsafe: true,
         unsafe_comps: true,
         unsafe_math: true,
         unsafe_methods: true,
+        unsafe_regexp: true,
         reduce_vars: true,
         collapse_vars: true,
         hoist_funs: true,
-        hoist_vars: true
+        hoist_vars: true,
+        dead_code: true,
+        evaluate: true,
+        if_return: true,
+        join_vars: true,
+        sequences: true,
+        conditionals: true,
+        comparisons: true,
+        booleans: true,
+        loops: true,
+        unused: true,
+        toplevel: true
       },
       format: {
         comments: false,
@@ -64,4 +79,4 @@ export default defineConfig({
     legalComments: 'none',
     treeShaking: true
   }
-})
+}))

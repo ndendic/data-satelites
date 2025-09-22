@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "echo 'Building plugins...' && vite build && echo '✅ Build complete!'",
+    "build:prod": "echo 'Building minified production plugins...' && vite build --mode production && echo '✅ Production build complete!'",
     "build:watch": "vite build --watch",
     "dev": "vite build --watch & npx serve . -p 8080",
     "serve": "npx serve . -p 8080",
