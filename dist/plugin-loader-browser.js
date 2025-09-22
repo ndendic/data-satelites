@@ -23,7 +23,24 @@
       this.registry = {};
       this.defaultCDN = 'https://cdn.jsdelivr.net/gh/starfederation/datastar-plugins@latest';
       this.localCDN = 'http://localhost:8080'; // For development/testing
+      this.baseURL = null;
       this.initializeRegistry();
+    }
+
+    /**
+     * Sets the base URL for loading plugins.
+     * @param url The base URL to use.
+     */
+    setBaseURL(url) {
+      this.baseURL = url;
+      console.log(`[PluginLoader] Base URL set to: ${this.baseURL}`);
+    }
+
+    /**
+     * Gets the current base URL.
+     */
+    getBaseURL() {
+      return this.baseURL;
     }
 
     /**
@@ -185,7 +202,7 @@
 
       // Determine CDN URL
       const cdn = options.cdn || this.detectCDN();
-      const url = `${cdn}${versionInfo.url}`;
+      const url = cdn.endsWith('/') ? `${cdn}${versionInfo.url.substring(1)}` : `${cdn}${versionInfo.url}`;
 
       try {
         // Load the plugin script
@@ -233,6 +250,10 @@
      * Detect appropriate CDN based on environment
      */
     detectCDN() {
+      // Respect explicitly configured base URL first
+      if (this.baseURL) {
+        return this.baseURL;
+      }
       // Use local CDN for development
       if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
         return this.localCDN;

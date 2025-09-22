@@ -19,11 +19,8 @@
     // Load plugin system from GitHub CDN
     await import('https://cdn.jsdelivr.net/gh/ndendic/data-satelites@master/dist/plugin-loader-browser.js');
     
-    // Configure to load plugins from GitHub CDN
-    window.DatastarPluginLoader.setBaseURL('https://cdn.jsdelivr.net/gh/ndendic/data-satelites@master/dist/');
-    
-    // Auto-load plugins
-    await datastar.autoLoadPlugins();
+    // Auto-load plugins from GitHub CDN (pass CDN base via options)
+    await datastar.autoLoadPlugins({ cdn: 'https://cdn.jsdelivr.net/gh/ndendic/data-satelites@master' });
   </script>
   
   <style>

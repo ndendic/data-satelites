@@ -45,7 +45,17 @@ declare class DatastarPluginLoader {
     private registry;
     private defaultCDN;
     private localCDN;
+    private baseURL;
     constructor();
+    /**
+     * Sets the base URL for loading plugins.
+     * @param url The base URL to use.
+     */
+    setBaseURL(url: string): void;
+    /**
+     * Gets the current base URL.
+     */
+    getBaseURL(): string | null;
     /**
      * Initialize the plugin registry with known plugins
      */
