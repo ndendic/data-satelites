@@ -301,7 +301,8 @@
         script.onload = () => {
           // Look for plugin in global scope
           const pluginName = this.extractPluginNameFromUrl(url);
-          const globalName = `Datastar${this.capitalize(pluginName)}Plugin`;
+          const pascalName = this.normalizeToPascalCase(pluginName);
+          const globalName = `Datastar${pascalName}Plugin`;
           
           if (window[globalName]) {
             const plugin = window[globalName];
@@ -330,8 +331,15 @@
      * Extract plugin name from URL
      */
     extractPluginNameFromUrl(url) {
-      const match = url.match(/\/([^\/]+)(?:-browser)?\.js$/);
-      return match ? match[1] : 'unknown';
+      try {
+        const clean = url.split('#')[0].split('?')[0];
+        const file = clean.substring(clean.lastIndexOf('/') + 1);
+        const withoutExt = file.replace(/\.js$/, '');
+        const base = withoutExt.replace(/-browser$/, '');
+        return base || 'unknown';
+      } catch (e) {
+        return 'unknown';
+      }
     }
 
     /**
@@ -339,6 +347,18 @@
      */
     capitalize(str) {
       return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    /**
+     * Convert a name with separators to PascalCase (e.g., "anchor-plugin" -> "AnchorPlugin")
+     */
+    normalizeToPascalCase(name) {
+      if (!name) return '';
+      return name
+        .split(/[^a-zA-Z0-9]+/)
+        .filter(Boolean)
+        .map(part => this.capitalize(part))
+        .join('');
     }
 
     /**
