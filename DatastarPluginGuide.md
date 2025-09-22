@@ -135,32 +135,67 @@ Datastar uses a dual-plugin system:
 
 ```typescript
 interface AttributePlugin {
+  type: 'attribute'
   name: string
-  type: 'Attribute'
-  apply(element: HTMLElement, key: string, value: string): void
-  cleanup?(element: HTMLElement): void
+  onGlobalInit?: (ctx: InitContext) => void
+  onLoad: (ctx: RuntimeContext) => OnRemovalFn | void
+  keyReq?: 'allowed' | 'must' | 'denied' | 'exclusive'
+  valReq?: 'allowed' | 'must' | 'denied' | 'exclusive'
+  returnsValue?: boolean
+  shouldEvaluate?: boolean
+  argNames?: string[]
 }
 
 interface ActionPlugin {
-  name: string  
-  type: 'Action'
-  execute(...args: any[]): any
+  type: 'action'
+  name: string
+  fn: (ctx: RuntimeContext, ...args: any[]) => any
 }
+
+interface RuntimeContext {
+  plugin: DatastarPlugin
+  actions: Record<string, ActionPlugin>
+  root: Record<string, any>
+  filtered: (options?: SignalFilterOptions, obj?: any) => Record<string, any>
+  signal<T>(initialValue?: T): Signal<T>
+  computed<T>(getter: (previousValue?: T) => T): Computed<T>
+  effect(fn: () => void): OnRemovalFn
+  mergePatch: (patch: Record<string, any>, options?: { ifMissing?: boolean }) => void
+  mergePaths: (paths: [string, any][], options?: { ifMissing?: boolean }) => void
+  peek: <T>(fn: () => T) => T
+  getPath: <T>(path: string) => T | undefined
+  startBatch: () => void
+  endBatch: () => void
+  el: HTMLElement
+  rawKey: string
+  key: string
+  value: string
+  mods: Map<string, Set<string>>
+  rx: (...args: any[]) => any
+  initErr: (reason: string, metadata?: object) => Error
+  runtimeErr: (reason: string, metadata?: object) => Error
+}
+
+type OnRemovalFn = () => void
 ```
 
 ### Plugin Registration Pattern
 
-```javascript
-import { load, apply } from 'datastar'
+```typescript
+import { load } from 'datastar'
 
-const MyCustomPlugin = {
+const MyCustomPlugin: AttributePlugin = {
+  type: 'attribute',
   name: 'custom',
-  type: 'Attribute',
-  apply(element, key, value) {
-    // Implementation
-  },
-  cleanup(element) {
-    // Cleanup logic
+  keyReq: 'allowed',
+  valReq: 'allowed',
+  shouldEvaluate: false,
+  onLoad(ctx) {
+    // Plugin implementation
+    // Return cleanup function or void
+    return () => {
+      // Cleanup logic
+    }
   }
 }
 
@@ -170,83 +205,223 @@ load(MyCustomPlugin)
 
 ### Plugin Development Lifecycle
 
-1. **Load Phase**: Plugins registered via `load()` function
-2. **Application Phase**: `apply()` walks DOM and applies plugins
-3. **Reactive Phase**: Signal changes trigger plugin re-evaluation
-4. **Cleanup Phase**: Optional cleanup when elements removed
+1. **Load Phase**: Plugins registered via `load()` function - plugins are registered globally
+2. **Application Phase**: `apply()` walks DOM and applies plugins to matching elements
+3. **Initialization Phase**: `onLoad()` called for each matching element with RuntimeContext
+4. **Reactive Phase**: Signal changes trigger `ctx.effect()` callbacks in plugins
+5. **Cleanup Phase**: `onLoad()` returns cleanup function called when element removed
 
 ### Core Plugin Implementation Patterns
 
-#### Attribute Plugin Example
+#### Attribute Plugin Example - Persist Plugin
 
-```javascript
-const AnchorPlugin = {
-  name: 'anchor',
-  type: 'Attribute',
-  
-  apply(element, key, value) {
-    // Parse the expression to get target element
-    const targetSelector = value
-    const targetElement = document.querySelector(targetSelector)
-    
-    if (!targetElement) {
-      console.error(`Anchor target not found: ${targetSelector}`)
-      return
-    }
-    
-    // Position element relative to target
-    this.positionElement(element, targetElement, key)
-    
-    // Set up observers for responsive positioning
-    this.setupObservers(element, targetElement)
-  },
-  
-  positionElement(element, target, positioning) {
-    // Implementation using Floating UI or custom logic
-    const rect = target.getBoundingClientRect()
-    
-    switch(positioning) {
-      case 'bottom':
-        element.style.top = `${rect.bottom}px`
-        element.style.left = `${rect.left}px`
-        break
-      case 'top':
-        element.style.top = `${rect.top - element.offsetHeight}px`
-        element.style.left = `${rect.left}px`
-        break
-      // More positioning logic...
-    }
-  },
-  
-  setupObservers(element, target) {
-    // ResizeObserver for target size changes
-    // MutationObserver for position changes
-  },
-  
-  cleanup(element) {
-    // Disconnect observers
-    // Remove event listeners
+```typescript
+/**
+ * StarHTML Persist Handler - Datastar AttributePlugin Implementation
+ * Handles data-persist attributes for automatic signal persistence to storage
+ */
+
+const DEFAULT_STORAGE_KEY = "starhtml-persist";
+const DEFAULT_THROTTLE = 500;
+
+function getStorage(isSession: boolean): Storage | null {
+  try {
+    const storage = isSession ? sessionStorage : localStorage;
+    const testKey = "__test__";
+    storage.setItem(testKey, "1");
+    storage.removeItem(testKey);
+    return storage;
+  } catch {
+    return null;
   }
 }
+
+function parseConfig(ctx: RuntimeContext) {
+  const { key, value, mods } = ctx;
+
+  const isSession = mods.has("session");
+  const storage = getStorage(isSession);
+  if (!storage) return null;
+
+  // Custom keys come as data-persist-mykey, so the key is in ctx.key
+  const storageKey = key ? `${DEFAULT_STORAGE_KEY}-${key}` : DEFAULT_STORAGE_KEY;
+
+  let signals: string[] = [];
+  let isWildcard = false;
+
+  // Parse value for signals to persist
+  const trimmedValue = value?.trim();
+  if (trimmedValue) {
+    // If value is provided and not empty, parse it as comma-separated signals
+    signals = trimmedValue
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  } else {
+    // No value (boolean attribute) or empty value means persist all signals
+    isWildcard = true;
+  }
+
+  return { storage, storageKey, signals, isWildcard };
+}
+
+function loadFromStorage(config: any, ctx: RuntimeContext): void {
+  try {
+    const stored = config.storage.getItem(config.storageKey);
+    if (!stored) return;
+
+    const data = JSON.parse(stored);
+    if (!data || typeof data !== "object") return;
+
+    ctx.startBatch();
+    try {
+      if (config.isWildcard) {
+        ctx.mergePatch(data);
+      } else {
+        const patch = Object.fromEntries(
+          config.signals.filter((signal: string) => signal in data).map((signal: string) => [signal, data[signal]])
+        );
+
+        if (Object.keys(patch).length > 0) {
+          ctx.mergePatch(patch);
+        }
+      }
+    } finally {
+      ctx.endBatch();
+    }
+  } catch {
+    // Storage errors are expected in some environments
+  }
+}
+
+function getSignalsFromElement(el: HTMLElement): string[] {
+  const signals: string[] = [];
+
+  // Scan all attributes for data-signals-* pattern
+  for (const attr of el.attributes) {
+    if (attr.name.startsWith("data-signals-")) {
+      // Extract signal name from attribute name: data-signals-mySignal -> mySignal
+      const signalName = attr.name.substring("data-signals-".length);
+      if (signalName) {
+        signals.push(signalName);
+      }
+    }
+  }
+
+  return signals;
+}
+
+function saveToStorage(config: any, ctx: RuntimeContext, signalData: Record<string, any>): void {
+  try {
+    const stored = config.storage.getItem(config.storageKey);
+    const existing = stored ? JSON.parse(stored) : {};
+    const merged = { ...existing, ...signalData };
+
+    if (Object.keys(merged).length > 0) {
+      config.storage.setItem(config.storageKey, JSON.stringify(merged));
+    }
+  } catch {
+    // Storage quota exceeded or other storage errors
+  }
+}
+
+export const PersistPlugin: AttributePlugin = {
+  type: "attribute",
+  name: "persist",
+  keyReq: "allowed",
+  valReq: "allowed",
+  shouldEvaluate: false,
+
+  onLoad(ctx: RuntimeContext) {
+    const config = parseConfig(ctx);
+    if (!config) return;
+
+    loadFromStorage(config, ctx);
+
+    const throttleMs = ctx.mods.has("immediate")
+      ? 0
+      : Number.parseInt(String(ctx.mods.get("throttle") ?? DEFAULT_THROTTLE));
+
+    let cachedSignalData: Record<string, any> = {};
+
+    const persistData = () => {
+      if (Object.keys(cachedSignalData).length > 0) {
+        saveToStorage(config, ctx, cachedSignalData);
+      }
+    };
+
+    // Use debouncing for performance
+    const throttledPersist = throttleMs > 0
+      ? createDebounce(persistData, throttleMs)
+      : persistData;
+
+    // Single-pass signal tracking with data collection
+    const cleanup = ctx.effect(() => {
+      const signals = config.isWildcard
+        ? getSignalsFromElement(ctx.el)
+        : config.signals;
+
+      const data: Record<string, any> = {};
+
+      // Single pass: create dependencies and collect values
+      for (const signal of signals) {
+        try {
+          data[signal] = ctx.getPath(signal);
+        } catch {
+          // Signal doesn't exist, skip it
+        }
+      }
+
+      cachedSignalData = data;
+      throttledPersist();
+    });
+
+    return cleanup;
+  },
+};
 ```
 
 Usage:
 ```html
-<div data-anchor-bottom="$refs.trigger">Positioned content</div>
-<div data-anchor="'#my-target'">More content</div>
+<!-- Persist specific signals -->
+<div data-signals-count="0" data-persist-count>
+  <span data-text="$count"></span>
+  <button data-on-click="$count++">+</button>
+</div>
+
+<!-- Persist multiple signals -->
+<div data-signals="{user: {name: '', email: ''}}" data-persist="user.name,user.email">
+  <input data-bind="user.name" placeholder="Name">
+  <input data-bind="user.email" placeholder="Email">
+</div>
+
+<!-- Persist all signals (wildcard) -->
+<div data-signals="{count: 0, visible: true}" data-persist>
+  <!-- All signals in this element will be persisted -->
+</div>
+
+<!-- Session storage instead of localStorage -->
+<div data-signals="{temp: 'data'}" data-persist__session-temp>
+  <!-- Uses sessionStorage -->
+</div>
+
+<!-- Custom throttle timing -->
+<div data-signals="{input: ''}" data-persist-input__throttle.1000>
+  <!-- Only persists after 1000ms of no changes -->
+</div>
 ```
 
 #### Action Plugin Example
 
-```javascript
-const ClipboardAction = {
+```typescript
+const ClipboardAction: ActionPlugin = {
+  type: 'action',
   name: 'clipboard',
-  type: 'Action',
-  
-  execute(text, isBase64 = false) {
+
+  fn(ctx: RuntimeContext, text: string, isBase64 = false) {
     try {
       const content = isBase64 ? atob(text) : text
-      
+
       if (navigator.clipboard) {
         return navigator.clipboard.writeText(content)
       } else {
@@ -275,59 +450,85 @@ Usage:
 
 ### Signal Integration in Plugins
 
-```javascript
-const CounterPlugin = {
+```typescript
+const CounterPlugin: AttributePlugin = {
+  type: 'attribute',
   name: 'counter',
-  type: 'Attribute',
-  
-  apply(element, key, value) {
-    // Access current signal value
-    const currentValue = ctx.signals.value
-    
+  keyReq: 'must',
+  valReq: 'denied',
+  shouldEvaluate: false,
+
+  onLoad(ctx) {
+    let currentValue = 0
+
+    // Initialize from existing signal if present
+    try {
+      currentValue = ctx.getPath(ctx.key) || 0
+    } catch {
+      // Signal doesn't exist yet, will be created
+    }
+
     // Create reactive counter functionality
     const increment = () => {
-      ctx.signals[key].value = (ctx.signals[key].value || 0) + 1
+      currentValue++
+      ctx.mergePatch({ [ctx.key]: currentValue })
     }
-    
+
     const decrement = () => {
-      ctx.signals[key].value = Math.max(0, (ctx.signals[key].value || 0) - 1)
+      currentValue = Math.max(0, currentValue - 1)
+      ctx.mergePatch({ [ctx.key]: currentValue })
     }
-    
+
     // Create controls
-    const controls = this.createControls(increment, decrement)
-    element.appendChild(controls)
-    
-    // Subscribe to signal changes
-    ctx.signals[key].subscribe((newValue) => {
-      this.updateDisplay(element, newValue)
+    const controls = createControls(increment, decrement)
+    ctx.el.appendChild(controls)
+
+    // Set up reactive effect to track changes
+    const cleanup = ctx.effect(() => {
+      const newValue = ctx.getPath(ctx.key) || 0
+      if (newValue !== currentValue) {
+        currentValue = newValue
+        updateDisplay(ctx.el, currentValue)
+      }
     })
-  },
-  
-  createControls(increment, decrement) {
-    const container = document.createElement('div')
-    
-    const decrementBtn = document.createElement('button')
-    decrementBtn.textContent = '-'
-    decrementBtn.onclick = decrement
-    
-    const incrementBtn = document.createElement('button')  
-    incrementBtn.textContent = '+'
-    incrementBtn.onclick = increment
-    
-    container.appendChild(decrementBtn)
-    container.appendChild(incrementBtn)
-    return container
-  },
-  
-  updateDisplay(element, value) {
-    const display = element.querySelector('.counter-display') || 
-                   (() => {
-                     const div = document.createElement('div')
-                     div.className = 'counter-display'
-                     element.appendChild(div)
-                     return div
-                   })()
-    display.textContent = value || 0
+
+    return () => {
+      cleanup()
+      // Remove controls if still in DOM
+      const controls = ctx.el.querySelector('.counter-controls')
+      if (controls) {
+        ctx.el.removeChild(controls)
+      }
+    }
+  }
+}
+
+function createControls(increment: () => void, decrement: () => void) {
+  const container = document.createElement('div')
+  container.className = 'counter-controls'
+
+  const decrementBtn = document.createElement('button')
+  decrementBtn.textContent = '-'
+  decrementBtn.onclick = decrement
+
+  const display = document.createElement('span')
+  display.className = 'counter-display'
+  display.textContent = '0'
+
+  const incrementBtn = document.createElement('button')
+  incrementBtn.textContent = '+'
+  incrementBtn.onclick = increment
+
+  container.appendChild(decrementBtn)
+  container.appendChild(display)
+  container.appendChild(incrementBtn)
+  return container
+}
+
+function updateDisplay(element: HTMLElement, value: number) {
+  const display = element.querySelector('.counter-display') as HTMLSpanElement
+  if (display) {
+    display.textContent = value.toString()
   }
 }
 ```
@@ -405,17 +606,16 @@ Usage:
 #### Plugin Loading Pattern
 ```html
 <script type="module">
-import { load } from 'https://cdn.jsdelivr.net/gh/starfederation/datastar@main/bundles/datastar.js'
+import { load, apply } from 'https://cdn.jsdelivr.net/gh/starfederation/datastar@main/bundles/datastar.js'
 
 // Import your custom plugins
-import AnchorPlugin from './plugins/anchor.js'
-import TooltipPlugin from './plugins/tooltip.js'
+import { PersistPlugin } from './dist/src/persist.js'
 
 // Load plugins before DOM processing
-load(
-  AnchorPlugin,
-  TooltipPlugin
-)
+load(PersistPlugin)
+
+// Apply Datastar to the DOM
+apply()
 </script>
 ```
 
@@ -424,32 +624,52 @@ load(
 
 ### Server-Side Integration
 
-Datastar plugins should consider server-side rendering and SSE integration:
+Datastar plugins work seamlessly with server-side rendering and SSE integration:
 
-```javascript
-const ServerAwarePlugin = {
+```typescript
+const ServerAwarePlugin: AttributePlugin = {
+  type: 'attribute',
   name: 'serveraware',
-  type: 'Attribute',
-  
-  apply(element, key, value) {
-    // Handle server-sent updates
-    element.addEventListener('datastar-patch', (event) => {
-      if (event.detail.selector === `#${element.id}`) {
-        this.handleServerUpdate(element, event.detail.data)
+  keyReq: 'allowed',
+  valReq: 'allowed',
+  shouldEvaluate: false,
+
+  onLoad(ctx) {
+    // Handle server-sent updates via Datastar's signal patch events
+    const handleServerUpdate = (event: CustomEvent) => {
+      // Check if this update affects our element
+      if (event.detail && ctx.key in event.detail) {
+        this.handleServerUpdate(ctx.el, event.detail[ctx.key])
       }
+    }
+
+    // Listen for Datastar's signal patch events
+    document.addEventListener('datastar-signal-patch', handleServerUpdate)
+
+    // Set up reactive effect to sync with server when needed
+    const cleanup = ctx.effect(() => {
+      const currentValue = ctx.getPath(ctx.key)
+      // Send plugin state to server via signals
+      ctx.mergePatch({ [`_${ctx.key}_state`]: this.getPluginState(ctx.el) })
     })
-    
-    // Send plugin state to server when needed
-    this.syncWithServer(element, key, value)
+
+    return () => {
+      document.removeEventListener('datastar-signal-patch', handleServerUpdate)
+      cleanup()
+    }
   },
-  
-  handleServerUpdate(element, serverData) {
+
+  handleServerUpdate(element: HTMLElement, serverData: any) {
     // Process server-sent updates specific to this plugin
+    console.log('Received server update for element:', element, serverData)
   },
-  
-  syncWithServer(element, key, value) {
-    // Send plugin state to server via signals or custom events
-    ctx.signals[`_${key}_state`] = this.getPluginState(element)
+
+  getPluginState(element: HTMLElement) {
+    // Extract current state from the element
+    return {
+      value: element.textContent,
+      timestamp: Date.now()
+    }
   }
 }
 ```
@@ -466,11 +686,13 @@ const ServerAwarePlugin = {
 
 4. **Action syntax**: Actions ALWAYS use `@` prefix: `@get()`, `@post()`, never `get()` or `datastar.get()`.
 
-5. **Expression contexts**: In data-* attributes, use expressions, not JavaScript statements:
+5. **Plugin loading**: Custom plugins must be loaded with `load()` before `apply()` is called.
+
+6. **Expression contexts**: In data-* attributes, use expressions, not JavaScript statements:
    - ✅ `data-text="$count + 1"`
    - ❌ `data-text="let x = $count + 1; return x"`
 
-6. **No direct DOM manipulation**: Datastar plugins should use the signal system, not direct DOM manipulation:
+7. **No direct DOM manipulation**: Datastar plugins should use the signal system, not direct DOM manipulation:
    - ✅ `$isVisible = true` (with `data-show="$isVisible"`)
    - ❌ `element.style.display = 'block'`
 
