@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Datastar Anchor Plugin - Documentation & Demo</title>
+
+    <!-- Open Props CSS Framework -->
+    <link rel="stylesheet" href="https://unpkg.com/open-props">
+    <link rel="stylesheet" href="https://unpkg.com/open-props/normalize.min.css">
+
+    <!-- Highlight.js for syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <script type="module">
+        import { load, apply } from 'https://cdn.jsdelivr.net/gh/starfederation/datastar@main/bundles/datastar.js';
+        import AnchorPlugin from '../dist/min/anchor.min.js';
+        load(AnchorPlugin);
+        apply();
+    </script>
+
+    <script>
+        // Initialize Highlight.js
+        document.addEventListener('DOMContentLoaded', function() {
+            hljs.highlightAll();
+        });
+    </script>
+
+    <style>
+        /* Shadcn-style minimal design system */
+        :root {
+            --background: hsl(0, 0%, 100%);
+            --foreground: hsl(224, 71%, 4%);
+            --muted: hsl(220, 14%, 96%);
+            --muted-foreground: hsl(220, 9%, 46%);
+            --border: hsl(220, 13%, 91%);
+            --primary: hsl(262, 83%, 58%);
+            --primary-foreground: hsl(210, 40%, 98%);
+            --radius: 0.5rem;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --background: hsl(224, 71%, 4%);
+                --foreground: hsl(213, 31%, 91%);
+                --muted: hsl(223, 47%, 11%);
+                --muted-foreground: hsl(215, 16%, 65%);
+                --border: hsl(216, 34%, 17%);
+            }
+        }
+
+        * {
+            border-color: var(--border);
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--background);
+            color: var(--foreground);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: var(--size-lg);
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header */
+        .hero {
+            text-align: center;
+            padding: 4rem 0;
+            margin-bottom: 3rem;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background: var(--muted);
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--foreground);
+        }
+
+        .hero p {
+            font-size: 1.125rem;
+            color: var(--muted-foreground);
+            margin-bottom: 2rem;
+        }
+
+        /* Sections */
+        .section {
+            margin-bottom: 3rem;
+        }
+
+        .section h2 {
+            font-size: 1.875rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--foreground);
+        }
+
+        .section h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 1.5rem 0 0.75rem;
+            color: var(--foreground);
+        }
+
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary);
+            color: var(--primary-foreground);
+            border: 1px solid transparent;
+            border-radius: var(--radius);
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: hsl(262, 83%, 50%);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--foreground);
+        }
+
+        .btn-outline:hover {
+            background: var(--muted);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--foreground);
+        }
+
+        .btn-ghost:hover {
+            background: var(--muted);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .tab {
+            background: transparent;
+            border: 1px solid transparent;
+            border-bottom: none;
+            border-radius: var(--radius) var(--radius) 0 0;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            color: var(--muted-foreground);
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: var(--background);
+            border-color: var(--border);
+            color: var(--foreground);
+        }
+
+        .tab-content {
+            background: var(--background);
+            border: 1px solid var(--border);
+            border-radius: 0 var(--radius) var(--radius) var(--radius);
+            padding: 1rem;
+        }
+
+        /* Code blocks */
+        .code {
+            background: var(--muted);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem;
+            margin: 0.75rem 0;
+            overflow-x: auto;
+        }
+
+        .code pre {
+            margin: 0;
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        .code code {
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        /* Highlight.js styles */
+        .code pre code.hljs {
+            padding: 0;
+            background: transparent;
+        }
+
+        /* Playground */
+        .playground {
+            background: var(--muted);
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 2rem;
+            margin: 1rem 0;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            position: relative;
+        }
+
+        .playground-label {
+            position: absolute;
+            top: 0.75rem;
+            left: 0.75rem;
+            background: var(--background);
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--radius);
+            font-size: 0.75rem;
+            color: var(--muted-foreground);
+            border: 1px solid var(--border);
+        }
+
+        /* Anchored elements */
+        .tooltip {
+            background: var(--background);
+            color: var(--foreground);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            max-width: 200px;
+            text-align: center;
+            z-index: 50;
+        }
+
+        .dropdown {
+            background: var(--background);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            min-width: 200px;
+            z-index: 40;
+        }
+
+        .dropdown-item {
+            display: block;
+            padding: 0.5rem 0.75rem;
+            color: var(--foreground);
+            text-decoration: none;
+            border-radius: var(--radius);
+            transition: background 0.2s;
+        }
+
+        .dropdown-item:hover {
+            background: var(--muted);
+        }
+
+        .popover {
+            background: var(--background);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            max-width: 300px;
+            z-index: 40;
+        }
+
+        .popover h4 {
+            margin: 0 0 0.5rem;
+            color: var(--foreground);
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .popover p {
+            margin: 0;
+            color: var(--muted-foreground);
+            font-size: 0.875rem;
+        }
+
+        /* Feature grid */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .feature-card {
+            background: var(--background);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .feature-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .hero {
+                padding: 2rem 0;
+            }
+
+            .playground {
+                min-height: auto;
+                padding: 1rem;
+            }
+        }
+
+        /* Links */
+        a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body data-signals="{tooltipVisible: false, dropdownVisible: false, popoverVisible: false, tabActive: 'cdn'}">
+    <div class="container">
+        <h2>data-anchor</h2>
+
+
+        <!-- Installation -->
+        <section class="section">
+            <h2>Installation</h2>
+            <div >
+                <div class="tabs">
+                    <button class="tab" data-class-active="$tabActive == 'cdn'" data-on-click="$tabActive = 'cdn'">CDN</button>
+                    <button class="tab" data-class-active="$tabActive == 'npm'" data-on-click="$tabActive = 'npm'">NPM</button>
+                    <button class="tab" data-class-active="$tabActive == 'local'" data-on-click="$tabActive = 'local'">Local</button>
+                </div>
+
+                <div class="tab-content" data-show="$tabActive == 'cdn'">
+                    <h3>CDN Installation</h3>
+                    <div class="code">
+                    <pre><code class="language-javascript">&lt;script type="module"&gt;
+import { load, apply } from 'https://cdn.jsdelivr.net/gh/starfederation/datastar@main/bundles/datastar.js';
+import AnchorPlugin from 'https://cdn.jsdelivr.net/gh/ndendic/data-satelites@master/dist/min/anchor.min.js';
+load(AnchorPlugin);
+apply();
+&lt;/script&gt;</code></pre>
+                </div>
+                </div>
+
+                <div class="tab-content" data-show="$tabActive == 'npm'">
+                    <h3>NPM Installation</h3>
+                    <div class="code">
+                        <pre><code class="language-bash">npm install data-satellites</code></pre>
+                    </div>
+                    <div class="code">
+                        <pre><code class="language-javascript">import { load, apply } from '@starfederation/datastar';
+import AnchorPlugin from 'data-satellites/anchor';
+load(AnchorPlugin);
+apply();</code></pre>
+                    </div>
+                </div>
+
+                <div class="tab-content" data-show="$tabActive == 'local'">
+                    <h3>Local Development</h3>
+                    <div class="code">
+                        <pre><code class="language-javascript">import AnchorPlugin from './dist/src/anchor.js';
+load(AnchorPlugin);
+apply();</code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Basic Usage -->
+        <section class="section">
+            <h2>Basic Usage</h2>
+
+            <div >
+                <h3>Tooltip Example</h3>
+                <p>Hover over the button to see a tooltip positioned using CSS anchor positioning</p>
+
+                <div class="playground">
+                    <div class="playground-label">Interactive Demo</div>
+                    <button id="tooltip-anchor" class="btn"
+                            data-on-mouseenter="$tooltipVisible = true"
+                            data-on-mouseleave="$tooltipVisible = false">
+                        Hover for Tooltip
+                    </button>
+                </div>
+
+                <div data-anchor="'#tooltip-anchor, top, 12px'"
+                     data-show="$tooltipVisible"
+                     class="tooltip">
+                    I'm positioned with CSS anchors!
+                </div>
+
+                <div class="code">
+                    <pre><code class="language-html">&lt;button id="tooltip-anchor"
+        data-on-mouseenter="$tooltipVisible = true"
+        data-on-mouseleave="$tooltipVisible = false"&gt;
+    Hover for Tooltip
+&lt;/button&gt;
+
+&lt;div data-anchor="'#tooltip-anchor, top, 12px'"
+     data-show="$tooltipVisible"
+     class="tooltip"&gt;
+    I'm positioned with CSS anchors!
+&lt;/div&gt;</code></pre>
+                </div>
+            </div>
+
+            <div >
+                <h3>Dropdown Example</h3>
+                <p>Click the button to toggle a dropdown menu</p>
+
+                <div class="playground">
+                    <div class="playground-label">Click Demo</div>
+                    <button id="dropdown-anchor" class="btn btn-outline"
+                            data-on-click="$dropdownVisible = !$dropdownVisible">
+                        Menu
+                    </button>
+                </div>
+
+                <div data-anchor="'#dropdown-anchor, bottom-start, 8px'"
+                     data-show="$dropdownVisible"
+                     class="dropdown">
+                    <a href="#" class="dropdown-item" data-on-click="$dropdownVisible = false">Dashboard</a>
+                    <a href="#" class="dropdown-item" data-on-click="$dropdownVisible = false">Settings</a>
+                    <a href="#" class="dropdown-item" data-on-click="$dropdownVisible = false">Profile</a>
+                    <a href="#" class="dropdown-item" data-on-click="$dropdownVisible = false">Logout</a>
+                </div>
+
+                <div class="code">
+                    <pre><code class="language-html">&lt;button id="dropdown-anchor" data-on-click="$dropdownVisible = !$dropdownVisible"&gt;
+    Menu
+&lt;/button&gt;
+
+&lt;div data-anchor="'#dropdown-anchor, bottom-start, 8px'"
+     data-show="$dropdownVisible"
+     class="dropdown"&gt;
+    &lt;a href="#" class="dropdown-item"&gt;Dashboard&lt;/a&gt;
+    &lt;a href="#" class="dropdown-item"&gt;Settings&lt;/a&gt;
+    &lt;!-- More items... --&gt;
+&lt;/div&gt;</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- Advanced Examples -->
+        <section class="section">
+            <h2>Advanced Usage</h2>
+
+            <div >
+                <h3>Popover with Rich Content</h3>
+                <p>Complex content with multiple placement options</p>
+
+                <div class="playground">
+                    <div class="playground-label">Rich Content Demo</div>
+                    <button id="popover-anchor" class="btn btn-ghost"
+                            data-on-click="$popoverVisible = !$popoverVisible">
+                        Show Info
+                    </button>
+                </div>
+
+                <div data-anchor="'#popover-anchor, right, 16px'"
+                     data-show="$popoverVisible"
+                     class="popover">
+                    <h4>Anchor Positioning</h4>
+                    <p>This popover demonstrates advanced CSS anchor positioning with automatic edge detection and intelligent fallbacks for older browsers.</p>
+                </div>
+
+                <div class="code">
+                    <pre><code class="language-html">&lt;div data-anchor="'#popover-anchor, right, 16px'"
+     data-show="$popoverVisible"
+     class="popover"&gt;
+    &lt;h4&gt;Anchor Positioning&lt;/h4&gt;
+    &lt;p&gt;Rich content with automatic positioning...&lt;/p&gt;
+&lt;/div&gt;</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- API Reference -->
+        <section class="section">
+            <h2>API Reference</h2>
+
+            <div >
+                <h3>Syntax Options</h3>
+
+                <h4>Value-Based Syntax (Recommended)</h4>
+                <div class="code">
+                    <pre><code class="language-html">&lt;!-- Basic: target, placement, offset --&gt;
+&lt;div data-anchor="'#target, bottom, 12px'"&gt;&lt;/div&gt;
+
+&lt;!-- Just target and placement --&gt;
+&lt;div data-anchor="'#target, top'"&gt;&lt;/div&gt;
+
+&lt;!-- Just target (uses default bottom placement) --&gt;
+&lt;div data-anchor="'#target'"&gt;&lt;/div&gt;</code></pre>
+                </div>
+
+                <h4>Attribute-Based Syntax</h4>
+                <div class="code">
+                    <pre><code class="language-html">&lt;div data-anchor="#target"
+     data-anchor-placement="bottom-start"
+     data-anchor-offset="1rem"&gt;&lt;/div&gt;</code></pre>
+                </div>
+            </div>
+
+            <div >
+                <h3>Placement Options</h3>
+                <div class="code">
+                    <pre><code>top           top-start      top-end
+left          left-start     left-end
+bottom        bottom-start   bottom-end
+right         right-start    right-end</code></pre>
+                </div>
+            </div>
+
+            <div >
+                <h3>Supported Units</h3>
+                <div class="code">
+                    <pre><code>px    - Pixels (default)
+rem   - Root em units
+em    - Em units relative to element
+%     - Percentage of anchor element
+vw    - Viewport width percentage
+vh    - Viewport height percentage</code></pre>
+                </div>
+            </div>
+        </section>
+        <!-- Footer -->
+        <footer >
+            <p>Built for <a href="https://data-star.dev">Datastar</a> •
+            <a href="https://github.com/ndendic/data-satelites">GitHub</a></p>
+        </footer>
+    </div>
+
+    <!-- Click outside to close dropdowns -->
+    <script>
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#dropdown-anchor') && !e.target.closest('[data-anchor*="dropdown-anchor"]')) {
+                // Trigger Datastar signal update
+                document.dispatchEvent(new CustomEvent('click-outside-dropdown'));
+            }
+            if (!e.target.closest('#popover-anchor') && !e.target.closest('[data-anchor*="popover-anchor"]')) {
+                document.dispatchEvent(new CustomEvent('click-outside-popover'));
+            }
+        });
+    </script>
+</body>
+</html>

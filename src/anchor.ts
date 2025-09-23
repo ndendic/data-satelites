@@ -179,8 +179,6 @@ const getAnchorCSS = (anchorName: string, placement: string, offsetValue: number
 
 // Simple fallback positioning for browsers without CSS anchor support
 const applyFallbackPositioning = (el: HTMLElement, target: HTMLElement, placement: string, offsetValue: number, offsetUnit: string): OnRemovalFn => {
-  console.log('Using simple fallback positioning for', placement);
-  
   const updatePosition = () => {
     const targetRect = target.getBoundingClientRect();
     
@@ -302,8 +300,6 @@ export default {
   keyReq: "exact",
 
   onLoad({ el, value }: RuntimeContext): OnRemovalFn | void {
-    console.log('Datastar Anchor: Plugin loaded for element', el, { value });
-    
     const { target, placement, offsetValue, offsetUnit } = parseAnchorConfig(el, value);
     
     if (!target) {
@@ -329,10 +325,6 @@ export default {
       targetElement.id = targetId;
     }
     
-    console.log('Datastar Anchor: Positioning', el, 'relative to', targetElement, {
-      placement, offsetValue, offsetUnit
-    });
-    
     if (supportsCSSAnchor()) {
       // Generate unique anchor name
       const anchorName = generateAnchorName(targetId);
@@ -347,8 +339,6 @@ export default {
       // No cleanup needed for pure CSS positioning
       return;
     } else {
-      console.log('Datastar Anchor: CSS anchor positioning not supported, using basic fallback');
-      
       // Use simple JavaScript fallback without complex flipping
       return applyFallbackPositioning(el, targetElement, placement, offsetValue, offsetUnit);
     }
