@@ -101,7 +101,7 @@ npm run clean        # Clean rebuild
 ```html
 <script type="module">
 import { load, apply } from 'https://cdn.jsdelivr.net/gh/starfederation/datastar@main/bundles/datastar.js';
-import AnchorPlugin from 'https://cdn.jsdelivr.net/gh/ndendic/data-satelites@master/dist/min/anchor.min.js';
+import AnchorPlugin from 'https://cdn.jsdelivr.net/gh/ndendic/data-satellites@master/dist/min/anchor.min.js';
 load(AnchorPlugin);
 apply();
 </script>
