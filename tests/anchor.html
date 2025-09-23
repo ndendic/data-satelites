@@ -16,7 +16,8 @@
     <script type="module">
         import { load, apply } from 'https://cdn.jsdelivr.net/gh/starfederation/datastar@main/bundles/datastar.js';
         import AnchorPlugin from '../dist/min/anchor.min.js';
-        load(AnchorPlugin);
+        import PersistPlugin from '../dist/min/persist.min.js';
+        load(AnchorPlugin, PersistPlugin);
         apply();
     </script>
 
@@ -349,7 +350,7 @@
         }
     </style>
 </head>
-<body data-signals="{tooltipVisible: false, dropdownVisible: false, popoverVisible: false, tabActive: 'cdn'}">
+<body data-signals="{tooltipVisible: false, dropdownVisible: false, popoverVisible: false, tabActive: 'cdn'}" data-persist="tabActive">
     <div class="container">
         <h2>data-anchor</h2>
 

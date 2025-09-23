@@ -35,7 +35,7 @@ interface PersistConfig {
   isWildcard: boolean;
 }
 
-const DEFAULT_STORAGE_KEY = "starhtml-persist";
+const DEFAULT_STORAGE_KEY = "satellite-persist";
 const DEFAULT_THROTTLE = 500;
 
 function getStorage(isSession: boolean): Storage | null {
