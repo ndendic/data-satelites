@@ -359,7 +359,6 @@
             <div >
                 <div class="tabs">
                     <button class="tab" data-class-active="$tabActive == 'cdn'" data-on-click="$tabActive = 'cdn'">CDN</button>
-                    <button class="tab" data-class-active="$tabActive == 'npm'" data-on-click="$tabActive = 'npm'">NPM</button>
                     <button class="tab" data-class-active="$tabActive == 'local'" data-on-click="$tabActive = 'local'">Local</button>
                 </div>
 
@@ -373,19 +372,6 @@ load(AnchorPlugin);
 apply();
 &lt;/script&gt;</code></pre>
                 </div>
-                </div>
-
-                <div class="tab-content" data-show="$tabActive == 'npm'">
-                    <h3>NPM Installation</h3>
-                    <div class="code">
-                        <pre><code class="language-bash">npm install data-satellites</code></pre>
-                    </div>
-                    <div class="code">
-                        <pre><code class="language-javascript">import { load, apply } from '@starfederation/datastar';
-import AnchorPlugin from 'data-satellites/anchor';
-load(AnchorPlugin);
-apply();</code></pre>
-                    </div>
                 </div>
 
                 <div class="tab-content" data-show="$tabActive == 'local'">
