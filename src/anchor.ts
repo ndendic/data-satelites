@@ -104,6 +104,7 @@ const getAnchorCSS = (anchorName: string, placement: string, offsetValue: number
     case 'top':
       styles.bottom = `anchor(top)`;
       styles.left = `anchor(center)`;
+      styles.translate = `-50%`;
       styles.marginBlock = offset;
       break;
     case 'top-start':
@@ -119,6 +120,7 @@ const getAnchorCSS = (anchorName: string, placement: string, offsetValue: number
     case 'bottom':
       styles.top = `anchor(bottom)`;
       styles.left = `anchor(center)`;
+      styles.translate = `-50%`;
       styles.marginBlock = offset;
       break;
     case 'bottom-start':
@@ -131,9 +133,11 @@ const getAnchorCSS = (anchorName: string, placement: string, offsetValue: number
       styles.right = `anchor(right)`;
       styles.marginBlock = offset;
       break;
+
     case 'left':
       styles.right = `anchor(left)`;
       styles.top = `anchor(center)`;
+      styles.translate = `0 -50%`;
       styles.marginInline = offset;
       break;
     case 'left-start':
@@ -149,6 +153,7 @@ const getAnchorCSS = (anchorName: string, placement: string, offsetValue: number
     case 'right':
       styles.left = `anchor(right)`;
       styles.top = `anchor(center)`;
+      styles.translate = `0 -50%`;
       styles.marginInline = offset;
       break;
     case 'right-start':
@@ -165,6 +170,7 @@ const getAnchorCSS = (anchorName: string, placement: string, offsetValue: number
       // Default to bottom
       styles.top = `anchor(bottom)`;
       styles.left = `anchor(center)`;
+      styles.translate = `-50%`;
       styles.marginInline = offset;
   }
   
