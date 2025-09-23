@@ -57,7 +57,7 @@ function parseConfig(ctx: RuntimeContext): PersistConfig | null {
   const storage = getStorage(isSession);
   if (!storage) return null;
 
-  // v1.0.0-RC.3: Custom keys come as data-persist-mykey, so the key is in ctx.key
+  // v1.0.0-RC.3+: Custom keys come as data-persist-mykey, so the key is in ctx.key
   const storageKey = key ? `${DEFAULT_STORAGE_KEY}-${key}` : DEFAULT_STORAGE_KEY;
 
   let signals: string[] = [];

@@ -90,109 +90,85 @@ const parseAnchorConfig = (el: HTMLElement, value: string) => {
   }
 };
 
-// Convert placement to CSS anchor positioning with position-try-options
+// Convert placement to CSS anchor positioning with position-try-fallbacks
 const getAnchorCSS = (anchorName: string, placement: string, offsetValue: number, offsetUnit: string): Record<string, string> => {
   const offset = `${offsetValue}${offsetUnit}`;
   
   const styles: Record<string, string> = {
     position: 'absolute',
     'position-anchor': anchorName,
-    'position-try-options': getPositionTryOptions(placement)
+    'position-try-fallbacks': 'flip-inline, flip-block',
   };
   
   switch (placement) {
     case 'top':
       styles.bottom = `anchor(top)`;
       styles.left = `anchor(center)`;
-      styles.translate = `-50% -${offset}`;
+      styles.marginBlock = offset;
       break;
     case 'top-start':
       styles.bottom = `anchor(top)`;
       styles.left = `anchor(left)`;
-      styles.translate = `0 -${offset}`;
+      styles.marginBlock = offset;
       break;
     case 'top-end':
       styles.bottom = `anchor(top)`;
       styles.right = `anchor(right)`;
-      styles.translate = `0 -${offset}`;
+      styles.marginBlock = offset;
       break;
     case 'bottom':
       styles.top = `anchor(bottom)`;
       styles.left = `anchor(center)`;
-      styles.translate = `-50% ${offset}`;
+      styles.marginBlock = offset;
       break;
     case 'bottom-start':
       styles.top = `anchor(bottom)`;
       styles.left = `anchor(left)`;
-      styles.translate = `0 ${offset}`;
+      styles.marginBlock = offset;
       break;
     case 'bottom-end':
       styles.top = `anchor(bottom)`;
       styles.right = `anchor(right)`;
-      styles.translate = `0 ${offset}`;
+      styles.marginBlock = offset;
       break;
     case 'left':
       styles.right = `anchor(left)`;
       styles.top = `anchor(center)`;
-      styles.translate = `-${offset} -50%`;
+      styles.marginInline = offset;
       break;
     case 'left-start':
       styles.right = `anchor(left)`;
       styles.top = `anchor(top)`;
-      styles.translate = `-${offset} 0`;
+      styles.marginInline = offset;
       break;
     case 'left-end':
       styles.right = `anchor(left)`;
       styles.bottom = `anchor(bottom)`;
-      styles.translate = `-${offset} 0`;
+      styles.marginInline = offset;
       break;
     case 'right':
       styles.left = `anchor(right)`;
       styles.top = `anchor(center)`;
-      styles.translate = `${offset} -50%`;
+      styles.marginInline = offset;
       break;
     case 'right-start':
       styles.left = `anchor(right)`;
       styles.top = `anchor(top)`;
-      styles.translate = `${offset} 0`;
+      styles.marginInline = offset;
       break;
     case 'right-end':
       styles.left = `anchor(right)`;
       styles.bottom = `anchor(bottom)`;
-      styles.translate = `${offset} 0`;
+      styles.marginInline = offset; 
       break;
     default:
       // Default to bottom
       styles.top = `anchor(bottom)`;
       styles.left = `anchor(center)`;
-      styles.translate = `-50% ${offset}`;
+      styles.marginInline = offset;
   }
   
   return styles;
-};
-
-// Generate position-try-options for automatic flipping
-const getPositionTryOptions = (placement: string): string => {
-  // Define fallback placements based on the primary placement
-  const fallbacks: Record<string, string[]> = {
-    'top': ['bottom', 'left', 'right'],
-    'top-start': ['bottom-start', 'top-end', 'bottom-end'],
-    'top-end': ['bottom-end', 'top-start', 'bottom-start'],
-    'bottom': ['top', 'left', 'right'],
-    'bottom-start': ['top-start', 'bottom-end', 'top-end'],
-    'bottom-end': ['top-end', 'bottom-start', 'top-start'],
-    'left': ['right', 'top', 'bottom'],
-    'left-start': ['right-start', 'left-end', 'right-end'],
-    'left-end': ['right-end', 'left-start', 'right-start'],
-    'right': ['left', 'top', 'bottom'],
-    'right-start': ['left-start', 'right-end', 'left-end'],
-    'right-end': ['left-end', 'right-start', 'left-start']
-  };
-  
-  const fallbackPlacements = fallbacks[placement] || ['bottom', 'top', 'left', 'right'];
-  
-  // Convert to CSS position-try-options format
-  return fallbackPlacements.map(p => `flip-${p}`).join(', ');
 };
 
 // Simple fallback positioning for browsers without CSS anchor support
@@ -352,8 +328,6 @@ export default {
     });
     
     if (supportsCSSAnchor()) {
-      console.log('Datastar Anchor: Using CSS anchor positioning with position-try-options');
-      
       // Generate unique anchor name
       const anchorName = generateAnchorName(targetId);
       
@@ -363,8 +337,6 @@ export default {
       // Apply CSS anchor positioning to the anchored element
       const anchorStyles = getAnchorCSS(anchorName, placement, offsetValue, offsetUnit);
       Object.assign(el.style, anchorStyles);
-      
-      console.log('Datastar Anchor: Applied CSS anchor styles with position-try-options', anchorStyles);
       
       // No cleanup needed for pure CSS positioning
       return;

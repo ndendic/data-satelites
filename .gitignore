@@ -153,6 +153,5 @@ coverage/
 # AI
 .claude/
 .playwright-mcp/*
-.github/copilot-instructions.md
 .playwright-mcp/
 datastar-src/

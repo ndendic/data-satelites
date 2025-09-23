@@ -7,17 +7,9 @@
 
     <script type="module">
         import { load, apply } from 'https://cdn.jsdelivr.net/gh/starfederation/datastar@main/bundles/datastar.js';
-        import AnchorPlugin from './dist/src/anchor.js';
-
-        console.log('Datastar Anchor Demo: Loading plugin...', AnchorPlugin);
-        
-        // Enable more detailed logging
-        window.localStorage.setItem('debug', 'datastar*');
-        
-        load(AnchorPlugin);
-        console.log('Datastar Anchor Demo: Plugin loaded, applying...');
-        apply();
-        console.log('Datastar Anchor Demo: Datastar applied');
+        import AnchorPlugin from './dist/min/anchor.min.js';
+        load(AnchorPlugin);        
+        apply();        
     </script>
 
     <style>

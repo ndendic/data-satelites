@@ -1,10 +1,10 @@
-# Complete Guide to Datastar Plugin Development (v1.0.0-RC.3)
+# Complete Guide to Datastar Plugin Development (v1.0.0-RC.3+)
 
 ## What is Datastar?
 
 **Datastar is a lightweight (~11KB) hypermedia framework that combines the backend reactivity of HTMX and frontend reactivity of Alpine.js into a single TypeScript-based solution, enabling developers to build real-time, server-driven web applications using declarative data-* attributes and Server-Sent Events.**
 
-> **Updated for v1.0.0-RC.3**: This guide reflects the latest API patterns and plugin architecture as implemented in the current release candidate.
+> **Updated for v1.0.0-RC.3+**: This guide reflects the latest API patterns and plugin architecture as implemented in the current release candidate.
 
 ## Complete Datastar Reference
 
@@ -218,7 +218,7 @@ This is the actual working persist plugin implementation:
 ```typescript
 /**
  * Datastar Persist Handler - Automatic signal persistence to storage
- * Compatible with Datastar v1.0.0-RC.3
+ * Compatible with Datastar v1.0.0-RC.3+
  */
 
 import { createDebounce } from "./throttle.js";
@@ -275,7 +275,7 @@ function parseConfig(ctx: RuntimeContext): PersistConfig | null {
   const storage = getStorage(isSession);
   if (!storage) return null;
 
-  // v1.0.0-RC.3: Custom keys come as data-persist-mykey, so the key is in ctx.key
+  // v1.0.0-RC.3+: Custom keys come as data-persist-mykey, so the key is in ctx.key
   const storageKey = key ? `${DEFAULT_STORAGE_KEY}-${key}` : DEFAULT_STORAGE_KEY;
 
   let signals: string[] = [];
@@ -451,10 +451,10 @@ This shows our complete anchor positioning plugin using modern CSS features:
 ```typescript
 /**
  * Datastar Anchor Plugin - Modern CSS anchor positioning with intelligent fallback
- * Compatible with Datastar v1.0.0-RC.3
+ * Compatible with Datastar v1.0.0-RC.3+
  */
 
-// Plugin interfaces aligned with v1.0.0-RC.3
+// Plugin interfaces aligned with v1.0.0-RC.3+
 interface AttributePlugin {
   type: "attribute";
   name: string;
@@ -765,7 +765,7 @@ Usage:
 </html>
 ```
 
-#### Plugin Loading Pattern (v1.0.0-RC.3)
+#### Plugin Loading Pattern (v1.0.0-RC.3+)
 
 ```html
 <script type="module">
@@ -895,7 +895,7 @@ const ServerAwarePlugin: AttributePlugin = {
 
 10. **Signal naming restrictions**: Signal names cannot contain double underscores (`__`). Use single underscore for local signals (`_localSignal`).
 
-### Key Plugin Requirements (v1.0.0-RC.3)
+### Key Plugin Requirements (v1.0.0-RC.3+)
 
 1. **Interface Compliance**: Must implement `AttributePlugin` interface exactly
 2. **Export Pattern**: Export as default ES module (`export default PluginName`)
@@ -922,7 +922,7 @@ Before generating Datastar plugin code, verify:
 - [ ] Uses `ctx.effect()` for reactive signal tracking
 - [ ] Error handling for missing DOM elements
 - [ ] No direct DOM manipulation (use signals instead)
-- [ ] TypeScript interfaces match v1.0.0-RC.3 specification
+- [ ] TypeScript interfaces match v1.0.0-RC.3+ specification
 - [ ] Compatible with modern build tools (Vite, etc.)
 
 ### Error Prevention Patterns
